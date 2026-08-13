@@ -1,0 +1,5 @@
+# requirements.txt - Aratako/MioCodec-25Hz-44.1kHz-v2
+# 仅包含模型特有依赖，基础依赖（torch, vllm, transformers）由基础镜像/create_env.sh 提供
+
+soundfile
+librosa

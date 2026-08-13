@@ -1,0 +1,7 @@
+# requirements.txt - ibm-granite/granite-speech-4.1-2b
+# 仅包含模型特有依赖，基础依赖（torch, vllm, transformers）由基础镜像/create_env.sh 提供
+
+accelerate
+soundfile
+librosa
+sentencepiece

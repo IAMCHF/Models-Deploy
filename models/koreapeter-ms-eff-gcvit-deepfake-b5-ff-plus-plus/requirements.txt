@@ -1,0 +1,5 @@
+# requirements.txt - KoreaPeter/ms-eff-gcvit-deepfake-b5-ff-plus-plus
+# 仅包含模型特有依赖，基础依赖（torch, vllm, transformers）由基础镜像/create_env.sh 提供
+
+timm
+opencv-python-headless

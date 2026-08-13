@@ -1,0 +1,6 @@
+# requirements.txt - facebook/vjepa2-vitl-fpc64-256
+# 仅包含模型特有依赖，基础依赖（torch, vllm, transformers）由基础镜像/create_env.sh 提供
+
+timm
+decord
+av

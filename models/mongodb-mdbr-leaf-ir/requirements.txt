@@ -1,0 +1,4 @@
+# requirements.txt - MongoDB/mdbr-leaf-ir
+# 仅包含模型特有依赖，基础依赖（torch, vllm, transformers）由基础镜像/create_env.sh 提供
+
+# 此模型无额外依赖，使用基础镜像默认环境即可
