@@ -35,10 +35,11 @@ RUN ln -sf /usr/bin/python3.11 /usr/local/bin/python3 \
     && ln -sf /usr/bin/python3.11 /usr/local/bin/python
 
 # ------------------------------------------------------------
-# PyTorch 2.4.0 (cu124) — 仅安装于 Python 3.11
+# PyTorch 2.5.1 (cu124) — 仅安装于 Python 3.11
+# 注：2.4.0 的 nvidia-cudnn-cu12==9.1.0.70 已从 PyPI 下架，升级至 2.5.1
 # ------------------------------------------------------------
 RUN pip3 install --no-cache-dir \
-        torch==2.4.0 torchvision==0.19.0 torchaudio==2.4.0 \
+        torch==2.5.1 torchvision==0.20.1 torchaudio==2.5.1 \
         --index-url https://download.pytorch.org/whl/cu124
 
 # ------------------------------------------------------------
