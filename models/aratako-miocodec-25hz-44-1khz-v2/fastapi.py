@@ -26,11 +26,11 @@ from pydantic import BaseModel
 os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
-logger = logging.getLogger("aratako-miocodec-25hz-44.1khz-v2")
+logger = logging.getLogger("aratako-miocodec-25hz-44-1khz-v2")
 
 WEIGHTS_DIR = Path(__file__).resolve().parent / "weights"
 
-app = FastAPI(title="aratako-miocodec-25hz-44.1khz-v2", version="1.0.0")
+app = FastAPI(title="aratako-miocodec-25hz-44-1khz-v2", version="1.0.0")
 
 # ============================================================
 # TODO [模型加载区域] — 必须从模型页面获取真实部署代码填入此处

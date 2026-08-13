@@ -10,7 +10,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
 echo "=========================================="
-echo "[env] 开始创建虚拟环境: google-timesfm-2.5-200m-transformers"
+echo "[env] 开始创建虚拟环境: google-timesfm-2-5-200m-transformers"
 echo "=========================================="
 
 # ------------------------------------------------------------
@@ -75,7 +75,7 @@ echo "[env] 无额外 requirements.txt 依赖"
 echo "[env] 记录环境信息"
 {
     echo "model_id: google/timesfm-2.5-200m-transformers"
-    echo "folder_name: google-timesfm-2.5-200m-transformers"
+    echo "folder_name: google-timesfm-2-5-200m-transformers"
     echo "python: $(python3 --version 2>&1)"
     echo "created_at: $(date)"
     echo "--- pip freeze ---"
@@ -83,6 +83,6 @@ echo "[env] 记录环境信息"
 } > env_info.txt
 
 echo "=========================================="
-echo "[env] 虚拟环境创建完成: google-timesfm-2.5-200m-transformers"
+echo "[env] 虚拟环境创建完成: google-timesfm-2-5-200m-transformers"
 echo "[env] 环境信息已写入: env_info.txt"
 echo "=========================================="

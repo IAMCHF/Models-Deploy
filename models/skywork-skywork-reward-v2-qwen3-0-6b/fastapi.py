@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-FastAPI 服务 - ibm-granite/granite-speech-4.1-2b
-任务: 多语言ASR/语音翻译
-模态: audio
+FastAPI 服务 - Skywork/Skywork-Reward-V2-Qwen3-0.6B
+任务: 奖励模型/偏好评分
+模态: text
 
 [重要] 模型加载代码需从 HuggingFace 模型页面获取真实部署代码后填入下方 TODO 区域。
-  - 镜像站优先: https://hf-mirror.com/ibm-granite/granite-speech-4.1-2b
-  - 官方兜底:   https://huggingface.co/ibm-granite/granite-speech-4.1-2b
+  - 镜像站优先: https://hf-mirror.com/Skywork/Skywork-Reward-V2-Qwen3-0.6B
+  - 官方兜底:   https://huggingface.co/Skywork/Skywork-Reward-V2-Qwen3-0.6B
   - 解析页面中 "Use in Transformers" / "Use in vLLM" / "How to use" 等代码片段
   - 加载优先级: transformers 加载 > vLLM 加载
 """
@@ -26,11 +26,11 @@ from pydantic import BaseModel
 os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
-logger = logging.getLogger("ibm-granite-granite-speech-4.1-2b")
+logger = logging.getLogger("skywork-skywork-reward-v2-qwen3-0-6b")
 
 WEIGHTS_DIR = Path(__file__).resolve().parent / "weights"
 
-app = FastAPI(title="ibm-granite-granite-speech-4.1-2b", version="1.0.0")
+app = FastAPI(title="skywork-skywork-reward-v2-qwen3-0-6b", version="1.0.0")
 
 # ============================================================
 # TODO [模型加载区域] — 必须从模型页面获取真实部署代码填入此处
@@ -72,7 +72,7 @@ async def health():
 async def predict(req: PredictRequest):
     """
     预测接口
-    - 输入: req.data (base64 编码的 audio 数据)
+    - 输入: req.data (base64 编码的 text 数据)
     - 输出: result (base64 编码的推理结果)
     """
     import time
@@ -87,7 +87,7 @@ async def predict(req: PredictRequest):
 
     # ============================================================
     # TODO [推理区域] — 根据模型页面示例代码实现推理逻辑
-    # raw_input 为解码后的原始字节，需根据模态(audio)进一步处理
+    # raw_input 为解码后的原始字节，需根据模态(text)进一步处理
     # ============================================================
     # output_bytes = run_inference(raw_input)
     output_bytes = raw_input  # TODO: 替换为真实推理结果

@@ -1,7 +1,7 @@
 #!/bin/bash
 # ============================================================
 # create_env.sh - 创建虚拟环境（仅内网本地执行，非 GitHub Actions）
-# 模型: Aratako/MioCodec-25Hz-44.1kHz-v2
+# 模型: Datadog/Toto-2.0-22m
 # 策略: 使用基础镜像默认环境
 # ============================================================
 set -e
@@ -10,7 +10,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
 echo "=========================================="
-echo "[env] 开始创建虚拟环境: aratako-miocodec-25hz-44.1khz-v2"
+echo "[env] 开始创建虚拟环境: datadog-toto-2-0-22m"
 echo "=========================================="
 
 # ------------------------------------------------------------
@@ -67,16 +67,15 @@ pip install --upgrade pip
 # ------------------------------------------------------------
 # 6. 安装 requirements.txt 模型特有依赖
 # ------------------------------------------------------------
-echo "[env] 安装 requirements.txt 模型特有依赖"
-    pip install -r requirements.txt
+echo "[env] 无额外 requirements.txt 依赖"
 
 # ------------------------------------------------------------
 # 7. 记录环境到 env_info.txt
 # ------------------------------------------------------------
 echo "[env] 记录环境信息"
 {
-    echo "model_id: Aratako/MioCodec-25Hz-44.1kHz-v2"
-    echo "folder_name: aratako-miocodec-25hz-44.1khz-v2"
+    echo "model_id: Datadog/Toto-2.0-22m"
+    echo "folder_name: datadog-toto-2-0-22m"
     echo "python: $(python3 --version 2>&1)"
     echo "created_at: $(date)"
     echo "--- pip freeze ---"
@@ -84,6 +83,6 @@ echo "[env] 记录环境信息"
 } > env_info.txt
 
 echo "=========================================="
-echo "[env] 虚拟环境创建完成: aratako-miocodec-25hz-44.1khz-v2"
+echo "[env] 虚拟环境创建完成: datadog-toto-2-0-22m"
 echo "[env] 环境信息已写入: env_info.txt"
 echo "=========================================="

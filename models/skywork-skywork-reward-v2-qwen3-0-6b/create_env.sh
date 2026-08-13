@@ -1,8 +1,8 @@
 #!/bin/bash
 # ============================================================
 # create_env.sh - 创建虚拟环境（仅内网本地执行，非 GitHub Actions）
-# 模型: OpenMOSS-Team/MOSS-TTS-Local-Transformer-v1.5
-# 策略: MOSS-TTS 系列：需最新 torch+CUDA 12.8，Python 3.12
+# 模型: Skywork/Skywork-Reward-V2-Qwen3-0.6B
+# 策略: 使用基础镜像默认环境
 # ============================================================
 set -e
 
@@ -10,7 +10,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
 echo "=========================================="
-echo "[env] 开始创建虚拟环境: openmoss-team-moss-tts-local-transformer-v1.5"
+echo "[env] 开始创建虚拟环境: skywork-skywork-reward-v2-qwen3-0-6b"
 echo "=========================================="
 
 # ------------------------------------------------------------
@@ -44,13 +44,13 @@ export PIP_CACHE_DIR="$(pwd)/../.pip_cache"
 mkdir -p "$PIP_CACHE_DIR"
 
 # ------------------------------------------------------------
-# 3. 创建虚拟环境（python3.12）
+# 3. 创建虚拟环境（python3）
 # ------------------------------------------------------------
 if [ -d "venv" ]; then
     echo "[env] 虚拟环境已存在，跳过创建。如需重建请先删除 venv/"
 else
-    echo "[env] 创建虚拟环境: python3.12 -m venv venv"
-    python3.12 -m venv venv
+    echo "[env] 创建虚拟环境: python3 -m venv venv"
+    python3 -m venv venv
 fi
 
 source ./venv/bin/activate
@@ -59,15 +59,10 @@ pip install --upgrade pip
 # ------------------------------------------------------------
 # 4. 如需覆盖基础版本，先卸载旧版本
 # ------------------------------------------------------------
-echo "[env] 卸载基础镜像默认版本: torch torchaudio transformers"
-    pip uninstall -y torch torchaudio transformers
 
 # ------------------------------------------------------------
 # 5. 安装覆盖版本依赖（特殊模型）
 # ------------------------------------------------------------
-echo "[env] 安装覆盖版本依赖"
-    pip install torch==2.9.1+cu128 torchaudio==2.9.1+cu128 --index-url https://download.pytorch.org/whl/cu128
-    pip install 'transformers>=5.0.0'
 
 # ------------------------------------------------------------
 # 6. 安装 requirements.txt 模型特有依赖
@@ -80,15 +75,15 @@ echo "[env] 安装 requirements.txt 模型特有依赖"
 # ------------------------------------------------------------
 echo "[env] 记录环境信息"
 {
-    echo "model_id: OpenMOSS-Team/MOSS-TTS-Local-Transformer-v1.5"
-    echo "folder_name: openmoss-team-moss-tts-local-transformer-v1.5"
-    echo "python: $(python3.12 --version 2>&1)"
+    echo "model_id: Skywork/Skywork-Reward-V2-Qwen3-0.6B"
+    echo "folder_name: skywork-skywork-reward-v2-qwen3-0-6b"
+    echo "python: $(python3 --version 2>&1)"
     echo "created_at: $(date)"
     echo "--- pip freeze ---"
     pip freeze
 } > env_info.txt
 
 echo "=========================================="
-echo "[env] 虚拟环境创建完成: openmoss-team-moss-tts-local-transformer-v1.5"
+echo "[env] 虚拟环境创建完成: skywork-skywork-reward-v2-qwen3-0-6b"
 echo "[env] 环境信息已写入: env_info.txt"
 echo "=========================================="

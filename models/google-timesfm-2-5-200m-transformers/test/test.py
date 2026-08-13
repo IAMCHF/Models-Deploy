@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-测试脚本 - google-timesfm-2.5-200m-transformers
+测试脚本 - google-timesfm-2-5-200m-transformers
 - 检查服务是否运行在 localhost:8080
 - 测试 /health 断言 status=ok
 - 测试 /predict：读取 test_data 中的样例，base64 编码后发送，验证返回非空
@@ -17,7 +17,7 @@ from pathlib import Path
 import requests
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
-logger = logging.getLogger("test_google-timesfm-2.5-200m-transformers")
+logger = logging.getLogger("test_google-timesfm-2-5-200m-transformers")
 
 BASE_URL = os.environ.get("SERVICE_URL", "http://localhost:8080")
 TEST_DATA_DIR = Path(__file__).resolve().parent / "test_data"
@@ -83,7 +83,7 @@ def test_predict():
 
 def main():
     logger.info("=" * 50)
-    logger.info("开始测试: google-timesfm-2.5-200m-transformers @ %s", BASE_URL)
+    logger.info("开始测试: google-timesfm-2-5-200m-transformers @ %s", BASE_URL)
     logger.info("=" * 50)
 
     try:

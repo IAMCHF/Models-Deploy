@@ -1,7 +1,7 @@
 #!/bin/bash
 # ============================================================
 # create_env.sh - 创建虚拟环境（仅内网本地执行，非 GitHub Actions）
-# 模型: ibm-granite/granite-speech-4.1-2b
+# 模型: Aratako/MioCodec-25Hz-44.1kHz-v2
 # 策略: 使用基础镜像默认环境
 # ============================================================
 set -e
@@ -10,7 +10,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
 echo "=========================================="
-echo "[env] 开始创建虚拟环境: ibm-granite-granite-speech-4.1-2b"
+echo "[env] 开始创建虚拟环境: aratako-miocodec-25hz-44-1khz-v2"
 echo "=========================================="
 
 # ------------------------------------------------------------
@@ -75,8 +75,8 @@ echo "[env] 安装 requirements.txt 模型特有依赖"
 # ------------------------------------------------------------
 echo "[env] 记录环境信息"
 {
-    echo "model_id: ibm-granite/granite-speech-4.1-2b"
-    echo "folder_name: ibm-granite-granite-speech-4.1-2b"
+    echo "model_id: Aratako/MioCodec-25Hz-44.1kHz-v2"
+    echo "folder_name: aratako-miocodec-25hz-44-1khz-v2"
     echo "python: $(python3 --version 2>&1)"
     echo "created_at: $(date)"
     echo "--- pip freeze ---"
@@ -84,6 +84,6 @@ echo "[env] 记录环境信息"
 } > env_info.txt
 
 echo "=========================================="
-echo "[env] 虚拟环境创建完成: ibm-granite-granite-speech-4.1-2b"
+echo "[env] 虚拟环境创建完成: aratako-miocodec-25hz-44-1khz-v2"
 echo "[env] 环境信息已写入: env_info.txt"
 echo "=========================================="

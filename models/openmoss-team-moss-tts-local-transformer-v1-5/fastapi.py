@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-FastAPI 服务 - google/timesfm-2.5-200m-transformers
-任务: 时序预测(Transformers兼容版)
-模态: tabular
+FastAPI 服务 - OpenMOSS-Team/MOSS-TTS-Local-Transformer-v1.5
+任务: 零样本语音克隆TTS(31种语言)
+模态: audio
 
 [重要] 模型加载代码需从 HuggingFace 模型页面获取真实部署代码后填入下方 TODO 区域。
-  - 镜像站优先: https://hf-mirror.com/google/timesfm-2.5-200m-transformers
-  - 官方兜底:   https://huggingface.co/google/timesfm-2.5-200m-transformers
+  - 镜像站优先: https://hf-mirror.com/OpenMOSS-Team/MOSS-TTS-Local-Transformer-v1.5
+  - 官方兜底:   https://huggingface.co/OpenMOSS-Team/MOSS-TTS-Local-Transformer-v1.5
   - 解析页面中 "Use in Transformers" / "Use in vLLM" / "How to use" 等代码片段
   - 加载优先级: transformers 加载 > vLLM 加载
 """
@@ -26,11 +26,11 @@ from pydantic import BaseModel
 os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
-logger = logging.getLogger("google-timesfm-2.5-200m-transformers")
+logger = logging.getLogger("openmoss-team-moss-tts-local-transformer-v1-5")
 
 WEIGHTS_DIR = Path(__file__).resolve().parent / "weights"
 
-app = FastAPI(title="google-timesfm-2.5-200m-transformers", version="1.0.0")
+app = FastAPI(title="openmoss-team-moss-tts-local-transformer-v1-5", version="1.0.0")
 
 # ============================================================
 # TODO [模型加载区域] — 必须从模型页面获取真实部署代码填入此处
@@ -72,7 +72,7 @@ async def health():
 async def predict(req: PredictRequest):
     """
     预测接口
-    - 输入: req.data (base64 编码的 tabular 数据)
+    - 输入: req.data (base64 编码的 audio 数据)
     - 输出: result (base64 编码的推理结果)
     """
     import time
@@ -87,7 +87,7 @@ async def predict(req: PredictRequest):
 
     # ============================================================
     # TODO [推理区域] — 根据模型页面示例代码实现推理逻辑
-    # raw_input 为解码后的原始字节，需根据模态(tabular)进一步处理
+    # raw_input 为解码后的原始字节，需根据模态(audio)进一步处理
     # ============================================================
     # output_bytes = run_inference(raw_input)
     output_bytes = raw_input  # TODO: 替换为真实推理结果

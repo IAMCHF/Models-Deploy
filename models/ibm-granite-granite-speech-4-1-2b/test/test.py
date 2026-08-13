@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-测试脚本 - datadog-toto-2.0-22m
+测试脚本 - ibm-granite-granite-speech-4-1-2b
 - 检查服务是否运行在 localhost:8080
 - 测试 /health 断言 status=ok
 - 测试 /predict：读取 test_data 中的样例，base64 编码后发送，验证返回非空
@@ -17,7 +17,7 @@ from pathlib import Path
 import requests
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
-logger = logging.getLogger("test_datadog-toto-2.0-22m")
+logger = logging.getLogger("test_ibm-granite-granite-speech-4-1-2b")
 
 BASE_URL = os.environ.get("SERVICE_URL", "http://localhost:8080")
 TEST_DATA_DIR = Path(__file__).resolve().parent / "test_data"
@@ -25,7 +25,7 @@ TEST_DATA_DIR = Path(__file__).resolve().parent / "test_data"
 # 测试数据生成策略：
 # 1. 优先从镜像站模型页面 Files 下载官方样例
 # 2. 镜像站不可用时从官方下载
-# 3. 均无则根据模型模态(tabular)生成随机数据
+# 3. 均无则根据模型模态(audio)生成随机数据
 
 
 def test_health():
@@ -51,13 +51,13 @@ def get_test_data():
             return base64.b64encode(f.read()).decode()
     else:
         # 根据模态生成随机数据
-        logger.warning("无测试数据文件，根据模态(%s)生成随机数据", "tabular")
-        if "tabular" == "text":
+        logger.warning("无测试数据文件，根据模态(%s)生成随机数据", "audio")
+        if "audio" == "text":
             raw = "这是一条测试文本。This is a test text.".encode("utf-8")
-        elif "tabular" in ("image", "video"):
+        elif "audio" in ("image", "video"):
             import random
             raw = bytes([random.randint(0, 255) for _ in range(1024)])
-        elif "tabular" == "audio":
+        elif "audio" == "audio":
             import struct, random
             raw = b"".join(struct.pack("<h", random.randint(-32768, 32767)) for _ in range(8000))
         else:  # tabular
@@ -83,7 +83,7 @@ def test_predict():
 
 def main():
     logger.info("=" * 50)
-    logger.info("开始测试: datadog-toto-2.0-22m @ %s", BASE_URL)
+    logger.info("开始测试: ibm-granite-granite-speech-4-1-2b @ %s", BASE_URL)
     logger.info("=" * 50)
 
     try:
