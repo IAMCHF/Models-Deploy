@@ -36,11 +36,18 @@ RUN ln -sf /usr/bin/python3.11 /usr/local/bin/python3 \
 
 # ------------------------------------------------------------
 # PyTorch 2.5.1 (cu124) — 仅安装于 Python 3.11
-# 注：2.4.0 的 nvidia-cudnn-cu12==9.1.0.70 已从 PyPI 下架，升级至 2.5.1
+# 注：nvidia-cudnn-cu12==9.1.0.70 已从 PyPI 下架，先装可用版本再 --no-deps 装 torch
 # ------------------------------------------------------------
-RUN pip3 install --no-cache-dir \
+RUN pip3 install --no-cache-dir nvidia-cudnn-cu12==9.1.1.17 && \
+    pip3 install --no-cache-dir --no-deps \
         torch==2.5.1 torchvision==0.20.1 torchaudio==2.5.1 \
-        --index-url https://download.pytorch.org/whl/cu124
+        --index-url https://download.pytorch.org/whl/cu124 && \
+    pip3 install --no-cache-dir \
+        nvidia-cuda-nvrtc-cu12 nvidia-cuda-runtime-cu12 nvidia-cuda-cupti-cu12 \
+        nvidia-cublas-cu12 nvidia-cufft-cu12 nvidia-curand-cu12 \
+        nvidia-cusolver-cu12 nvidia-cusparse-cu12 nvidia-cusparselt-cu12 \
+        nvidia-nccl-cu12 nvidia-nvtx-cu12 nvidia-nvjitlink-cu12 \
+        triton==3.1.0 sympy networkx jinja2 fsspec filelock typing-extensions
 
 # ------------------------------------------------------------
 # 基础 ML 依赖层（所有模型共享，仅 Python 3.11）
