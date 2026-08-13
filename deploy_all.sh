@@ -43,6 +43,9 @@ LARGE_MAX_BYTES=9663676416     # 9GB
 TINY_BATCH=4
 SMALL_BATCH=2
 
+# 虚拟环境创建并行数（不占GPU，可并行执行）
+PARALLEL_ENV=${PARALLEL_ENV:-4}
+
 # 健康检查最大等待秒数
 HEALTH_TIMEOUT=180
 
@@ -293,32 +296,62 @@ list_models() {
 
 batch_env() {
     echo "=========================================="
-    echo "批量创建虚拟环境（顺序执行，不占用GPU）"
+    echo "批量创建虚拟环境（${PARALLEL_ENV}个并行，不占用GPU）"
     echo "=========================================="
-    local ok=0
-    local fail=0
+    local tmpdir
+    tmpdir=$(mktemp -d)
+    local models=()
     for dir in $(get_models); do
+        models+=("$dir")
+    done
+    local total=${#models[@]}
+
+    for dir in "${models[@]}"; do
         local name
         name=$(basename "$dir")
-        echo ""
-        echo ">>> 创建环境: $name"
-        cd "$dir"
-        if [ -f "create_env.sh" ]; then
-            if bash create_env.sh; then
-                ok=$((ok + 1))
+
+        # 等待空位
+        while [ "$(jobs -rp 2>/dev/null | wc -l)" -ge "$PARALLEL_ENV" ]; do
+            sleep 2
+        done
+
+        echo ">>> [并行] 创建环境: $name"
+        (
+            cd "$dir"
+            if [ -f "create_env.sh" ]; then
+                if bash create_env.sh > create_env.log 2>&1; then
+                    echo "OK" > "$tmpdir/$name"
+                else
+                    echo "FAIL" > "$tmpdir/$name"
+                fi
             else
-                echo "[警告] $name 环境创建失败"
-                fail=$((fail + 1))
+                echo "SKIP" > "$tmpdir/$name"
             fi
-        else
-            echo "[跳过] $name 无 create_env.sh"
-            fail=$((fail + 1))
-        fi
-        cd "$SCRIPT_DIR"
+        ) &
     done
+
+    # 等待所有完成
+    wait
+
+    # 统计结果
+    local ok=0 fail=0 skip=0
+    for dir in "${models[@]}"; do
+        local name
+        name=$(basename "$dir")
+        local result
+        result=$(cat "$tmpdir/$name" 2>/dev/null || echo "UNKNOWN")
+        case "$result" in
+            OK)      ok=$((ok + 1)) ;;
+            FAIL)    fail=$((fail + 1)); echo "  [FAIL] $name (查看 models/$name/create_env.log)" ;;
+            SKIP)    skip=$((skip + 1)) ;;
+            *)       fail=$((fail + 1)); echo "  [UNKNOWN] $name" ;;
+        esac
+    done
+    rm -rf "$tmpdir"
+
     echo ""
     echo "=========================================="
-    echo "环境创建完成: 成功 $ok / 失败 $fail"
+    echo "环境创建完成: 成功 $ok / 失败 $fail / 跳过 $skip (共 $total)"
     echo "=========================================="
 }
 
