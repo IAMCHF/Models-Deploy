@@ -1,0 +1,67 @@
+# ============================================================
+# GitHub Actions：构建基础 Docker 镜像
+# 策略：使用官方 PyPI 源（禁止换源），启用 pip 缓存，产物打包为 .tar.gz 供内网下载
+# ============================================================
+name: Build Base Image
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'Dockerfile'
+      - '.github/workflows/build.yml'
+  workflow_dispatch:
+
+env:
+  IMAGE_NAME: models-deploy-base
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      # ------------------------------------------------------
+      # 1. 检出代码
+      # ------------------------------------------------------
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ------------------------------------------------------
+      # 2. 设置 Docker Buildx（支持缓存挂载）
+      # ------------------------------------------------------
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # ------------------------------------------------------
+      # 3. 构建镜像
+      #    禁止换源：使用官方 PyPI / 官方 PyTorch 源
+      #    启用 --mount=type=cache 缓存 pip 包
+      # ------------------------------------------------------
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          load: true
+          tags: ${{ env.IMAGE_NAME }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
+
+      # ------------------------------------------------------
+      # 4. 导出镜像为 .tar.gz 压缩包
+      # ------------------------------------------------------
+      - name: Export image tarball
+        run: |
+          docker save ${{ env.IMAGE_NAME }}:latest | gzip > ${{ env.IMAGE_NAME }}.tar.gz
+          ls -lh ${{ env.IMAGE_NAME }}.tar.gz
+
+      # ------------------------------------------------------
+      # 5. 上传 artifact 供内网下载
+      # ------------------------------------------------------
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.IMAGE_NAME }}-tarball
+          path: ${{ env.IMAGE_NAME }}.tar.gz
+          retention-days: 30

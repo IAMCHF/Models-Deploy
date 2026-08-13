@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.so
+
+# 虚拟环境
+venv/
+.venv/
+
+# pip 缓存
+.pip_cache/
+
+# 模型权重（体积大，不入库）
+models/*/weights/*
+!models/*/weights/.gitkeep
+
+# 测试数据（按需下载）
+models/*/test/test_data/*
+!models/*/test/test_data/.gitkeep
+
+# 环境记录
+models/*/env_info.txt
+
+# 服务日志
+models/*/service.log
+
+# 下载产物
+*.tar.gz
+download_report.json
+large_models_list.txt
+
+# 大模型标记
+models/*/.large_model
+
+# IDE
+.idea/
+.vscode/
+*.swp
