@@ -1,5 +1,5 @@
 {
-  "_comment": "模型清单（41个）— Agent 解析输入。folder_name 按命名转换规则生成（全小写、无下划线、<=50字符）",
+  "_comment": "模型清单（40个）— Agent 解析输入。folder_name 按命名转换规则生成（全小写、无下划线、<=50字符）",
   "models": [
     {"model_id": "numind/NuExtract3-FP8", "folder_name": "numind-nuextract3-fp8", "category": "OCR/文档解析", "task": "文档信息抽取结构化", "modality": "text", "venv_override": null, "requirements": ["accelerate", "bitsandbytes"]},
     {"model_id": "PaddlePaddle/PP-OCRv6_medium_det_onnx", "folder_name": "paddlepaddle-pp-ocrv6-medium-det-onnx", "category": "OCR/文档解析", "task": "OCR文本检测(中精度)", "modality": "image", "venv_override": null, "requirements": ["onnxruntime"]},
@@ -22,7 +22,6 @@
     {"model_id": "jhu-clsp/mmBERT-base", "folder_name": "jhu-clsp-mmbert-base", "category": "嵌入检索", "task": "多语言编码器(1800+语言)", "modality": "text", "venv_override": null, "requirements": []},
     {"model_id": "MongoDB/mdbr-leaf-ir", "folder_name": "mongodb-mdbr-leaf-ir", "category": "嵌入检索", "task": "信息检索文本嵌入(BEIR<=100M第1名)", "modality": "text", "venv_override": null, "requirements": []},
     {"model_id": "Alibaba-NLP/gte-modernbert-base", "folder_name": "alibaba-nlp-gte-modernbert-base", "category": "嵌入检索", "task": "文本嵌入语义检索(8192上下文)", "modality": "text", "venv_override": null, "requirements": ["accelerate"]},
-    {"model_id": "meta-llama/Llama-Prompt-Guard-2-86M", "folder_name": "meta-llama-llama-prompt-guard-2-86m", "category": "分类/安全/NLP", "task": "提示注入/越狱检测", "modality": "text", "venv_override": null, "requirements": []},
     {"model_id": "WebOrganizer/TopicClassifier-NoURL", "folder_name": "weborganizer-topicclassifier-nourl", "category": "分类/安全/NLP", "task": "网页内容主题分类(24类)", "modality": "text", "venv_override": null, "requirements": []},
     {"model_id": "Skywork/Skywork-Reward-V2-Qwen3-0.6B", "folder_name": "skywork-skywork-reward-v2-qwen3-0-6b", "category": "分类/安全/NLP", "task": "奖励模型/偏好评分", "modality": "text", "venv_override": null, "requirements": ["accelerate"]},
     {"model_id": "dleemiller/finecat-nli-l", "folder_name": "dleemiller-finecat-nli-l", "category": "分类/安全/NLP", "task": "自然语言推理分类(三分类)", "modality": "text", "venv_override": null, "requirements": []},
