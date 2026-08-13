@@ -5,18 +5,26 @@ FastAPI 服务 - autogluon/mitra-classifier
 任务: 表格分类基础模型
 模态: tabular
 
-[重要] 模型加载代码需从 HuggingFace 模型页面获取真实部署代码后填入下方 TODO 区域。
-  - 镜像站优先: https://hf-mirror.com/autogluon/mitra-classifier
-  - 官方兜底:   https://huggingface.co/autogluon/mitra-classifier
-  - 解析页面中 "Use in Transformers" / "Use in vLLM" / "How to use" 等代码片段
-  - 加载优先级: transformers 加载 > vLLM 加载
+模型卡来源: https://hf-mirror.com/autogluon/mitra-classifier
+模型卡 "Usage" 使用 AutoGluon 的 TabularPredictor + 'MITRA' 超参数 (in-context learning)：
+    from autogluon.tabular import TabularDataset, TabularPredictor
+    mitra_predictor = TabularPredictor(label='target')
+    mitra_predictor.fit(train_data, hyperparameters={'MITRA': {'fine_tune': False}})
+    predictions = mitra_predictor.predict(test_data)
+    proba = mitra_predictor.predict_proba(test_data)
+依赖: `pip install autogluon.tabular[mitra]` (见 requirements.txt: autogluon)。
+Mitra 为 in-context learning 表格基础模型，每次请求需提供带标签的训练数据 (fit 仅缓存上下文，不真正训练)。
 """
 
 import os
+import io
+import json
 import base64
 import logging
+import tempfile
 from pathlib import Path
 
+import pandas as pd
 from fastapi import FastAPI
 from pydantic import BaseModel
 
@@ -29,19 +37,32 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 logger = logging.getLogger("autogluon-mitra-classifier")
 
 WEIGHTS_DIR = Path(__file__).resolve().parent / "weights"
+MODEL_ID = "autogluon/mitra-classifier"
 
 app = FastAPI(title="autogluon-mitra-classifier", version="1.0.0")
 
 # ============================================================
-# TODO [模型加载区域] — 必须从模型页面获取真实部署代码填入此处
-# 禁止使用通用 AutoModel/pipeline 模板，须参考模型官方示例代码适配
+# 模型加载区域 — Mitra 通过 AutoGluon TabularPredictor 使用 (来自模型卡 Usage)
+# 参考: https://hf-mirror.com/autogluon/mitra-classifier
+# Mitra 为 in-context learning 模型，无独立持久化权重加载步骤；
+# 其基础模型权重由 AutoGluon 在 fit() 时自动下载/加载。
+# 此处在启动时校验 autogluon 可用性。
 # ============================================================
-# model = ...  # 从 weights/ 加载模型
-# tokenizer = ...  # 加载 tokenizer / processor
-# 示例参考（需替换为模型页面真实代码）:
-#   from transformers import AutoModelForXxx, AutoTokenizer
-#   model = AutoModelForXxx.from_pretrained(str(WEIGHTS_DIR), ...)
-#   tokenizer = AutoTokenizer.from_pretrained(str(WEIGHTS_DIR))
+_autogluon_ready = False
+
+
+def load_model():
+    """校验 AutoGluon (Mitra) 可用性；实际模型在每次请求中通过 fit 创建"""
+    global _autogluon_ready
+    if _autogluon_ready:
+        return
+    try:
+        from autogluon.tabular import TabularPredictor  # noqa: F401
+        _autogluon_ready = True
+        logger.info("AutoGluon (Mitra) 可用性校验通过")
+    except Exception as e:
+        logger.error("AutoGluon 导入失败，请安装 autogluon.tabular[mitra]: %s", e)
+        _autogluon_ready = False
 
 
 class PredictRequest(BaseModel):
@@ -57,9 +78,7 @@ class PredictResponse(BaseModel):
 @app.on_event("startup")
 async def startup_event():
     logger.info("服务启动，权重目录: %s", WEIGHTS_DIR)
-    # TODO: 在此触发模型加载（如需启动时预加载）
-    if not WEIGHTS_DIR.exists():
-        logger.warning("权重目录不存在，请先运行 download_weights.py 下载权重")
+    load_model()
 
 
 @app.get("/health")
@@ -71,26 +90,79 @@ async def health():
 @app.post("/predict")
 async def predict(req: PredictRequest):
     """
-    预测接口
-    - 输入: req.data (base64 编码的 tabular 数据)
-    - 输出: result (base64 编码的推理结果)
+    预测接口 (in-context learning: 每次请求提供带标签训练数据)
+    - 输入: req.data (base64 编码的 JSON 载荷)
+      JSON 字段:
+        train: str        # 训练 CSV 字符串 (含 label 列)
+        test: str         # 测试 CSV 字符串 (可含/不含 label 列)
+        label: str        # 标签列名 (默认 "target")
+        fine_tune: bool   # 是否微调 (默认 False)
+        fine_tune_steps: int # 微调步数 (默认 10)
+        return_proba: bool   # 是否返回概率 (默认 True)
+    - 输出: result (base64 编码的 JSON)
+      JSON 字段: {"predictions": [...], "predict_proba": {...}|null}
     """
     import time
     t0 = time.time()
 
     # 解码输入
     try:
-        raw_input = base64.b64decode(req.data)
+        raw_input = base64.b64decode(req.data).decode("utf-8")
     except Exception as e:
         logger.error("base64 解码失败: %s", e)
         return PredictResponse(result=base64.b64encode(b"error: invalid base64").decode())
 
     # ============================================================
-    # TODO [推理区域] — 根据模型页面示例代码实现推理逻辑
-    # raw_input 为解码后的原始字节，需根据模态(tabular)进一步处理
+    # 推理区域 — TabularPredictor.fit + predict (来自模型卡 Usage)
     # ============================================================
-    # output_bytes = run_inference(raw_input)
-    output_bytes = raw_input  # TODO: 替换为真实推理结果
+    tmpdir = None
+    try:
+        from autogluon.tabular import TabularDataset, TabularPredictor
+        payload = json.loads(raw_input)
+        label = payload.get("label", "target")
+        fine_tune = bool(payload.get("fine_tune", False))
+        fine_tune_steps = int(payload.get("fine_tune_steps", 10))
+        return_proba = bool(payload.get("return_proba", True))
+
+        train_df = TabularDataset(pd.read_csv(io.StringIO(payload["train"])))
+        test_df = TabularDataset(pd.read_csv(io.StringIO(payload["test"])))
+
+        logger.info("Mitra 分类: train_shape=%s, test_shape=%s, label=%s, fine_tune=%s",
+                    train_df.shape, test_df.shape, label, fine_tune)
+
+        # 模型卡示例: TabularPredictor(label=...).fit(..., hyperparameters={'MITRA': {...}})
+        tmpdir = tempfile.mkdtemp(prefix="mitra_ag_")
+        mitra_predictor = TabularPredictor(label=label, path=tmpdir)
+        fit_hyper = {"MITRA": {"fine_tune": fine_tune}}
+        if fine_tune:
+            fit_hyper["MITRA"]["fine_tune_steps"] = fine_tune_steps
+        mitra_predictor.fit(train_df, hyperparameters=fit_hyper)
+
+        # 模型卡示例: mitra_predictor.predict(test_data)
+        predictions = mitra_predictor.predict(test_df)
+        out = {"predictions": predictions.astype(object).tolist()}
+
+        # 模型卡示例: mitra_predictor.predict_proba(test_data)
+        if return_proba:
+            try:
+                proba = mitra_predictor.predict_proba(test_df)
+                out["predict_proba"] = proba.astype(object).to_dict(orient="list")
+            except Exception as pe:
+                out["predict_proba"] = None
+                logger.warning("predict_proba 失败: %s", pe)
+
+        output_bytes = json.dumps(out, ensure_ascii=False).encode("utf-8")
+    except Exception as e:
+        logger.error("推理失败: %s", e)
+        output_bytes = f"error: inference failed - {e}".encode("utf-8")
+    finally:
+        # 清理临时目录
+        if tmpdir:
+            try:
+                import shutil
+                shutil.rmtree(tmpdir, ignore_errors=True)
+            except Exception:
+                pass
 
     # 编码输出
     result = base64.b64encode(output_bytes).decode()

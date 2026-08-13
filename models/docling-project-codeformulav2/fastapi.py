@@ -5,16 +5,16 @@ FastAPI 服务 - docling-project/CodeFormulaV2
 任务: 公式/代码识别输出LaTeX
 模态: image
 
-[重要] 模型加载代码需从 HuggingFace 模型页面获取真实部署代码后填入下方 TODO 区域。
-  - 镜像站优先: https://hf-mirror.com/docling-project/CodeFormulaV2
-  - 官方兜底:   https://huggingface.co/docling-project/CodeFormulaV2
-  - 解析页面中 "Use in Transformers" / "Use in vLLM" / "How to use" 等代码片段
-  - 加载优先级: transformers 加载 > vLLM 加载
+模型卡来源: https://hf-mirror.com/docling-project/CodeFormulaV2
+模型卡未提供独立使用代码，使用 Docling 官方示例中的 DocumentConverter 管道加载 CodeFormulaV2。
+参考: https://github.com/docling-project/docling/blob/main/docs/examples/code_formula_granite_docling.py
 """
 
 import os
 import base64
+import json
 import logging
+import tempfile
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -33,15 +33,44 @@ WEIGHTS_DIR = Path(__file__).resolve().parent / "weights"
 app = FastAPI(title="docling-project-codeformulav2", version="1.0.0")
 
 # ============================================================
-# TODO [模型加载区域] — 必须从模型页面获取真实部署代码填入此处
-# 禁止使用通用 AutoModel/pipeline 模板，须参考模型官方示例代码适配
+# 模型加载区域 — 使用 Docling DocumentConverter + CodeFormulaVlmOptions
+# 参考: docling 官方示例 code_formula_granite_docling.py
+# 模型卡未提供独立代码片段，此处使用 Docling 管道 API。
 # ============================================================
-# model = ...  # 从 weights/ 加载模型
-# tokenizer = ...  # 加载 tokenizer / processor
-# 示例参考（需替换为模型页面真实代码）:
-#   from transformers import AutoModelForXxx, AutoTokenizer
-#   model = AutoModelForXxx.from_pretrained(str(WEIGHTS_DIR), ...)
-#   tokenizer = AutoTokenizer.from_pretrained(str(WEIGHTS_DIR))
+from docling.datamodel.base_models import InputFormat
+from docling.datamodel.pipeline_options import (
+    CodeFormulaVlmOptions,
+    PdfPipelineOptions,
+)
+from docling.document_converter import DocumentConverter, PdfFormatOption
+from docling_core.types.doc import CodeItem, FormulaItem
+
+converter = None
+
+
+def load_model():
+    """加载 CodeFormulaV2 模型 (通过 Docling 管道)"""
+    global converter
+    if converter is not None:
+        return
+    # 使用 CodeFormulaV2 预设
+    code_formula_options = CodeFormulaVlmOptions.from_preset("codeformulav2")
+    logger.info("CodeFormulaV2 预设: model=%s", code_formula_options.model_spec.name)
+
+    pipeline_options = PdfPipelineOptions(
+        do_ocr=False,
+        do_code_enrichment=True,
+        do_formula_enrichment=True,
+        code_formula_options=code_formula_options,
+    )
+
+    converter = DocumentConverter(
+        format_options={
+            InputFormat.IMAGE: PdfFormatOption(pipeline_options=pipeline_options),
+            InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options),
+        }
+    )
+    logger.info("Docling DocumentConverter (CodeFormulaV2) 加载完成")
 
 
 class PredictRequest(BaseModel):
@@ -57,9 +86,9 @@ class PredictResponse(BaseModel):
 @app.on_event("startup")
 async def startup_event():
     logger.info("服务启动，权重目录: %s", WEIGHTS_DIR)
-    # TODO: 在此触发模型加载（如需启动时预加载）
+    load_model()
     if not WEIGHTS_DIR.exists():
-        logger.warning("权重目录不存在，请先运行 download_weights.py 下载权重")
+        logger.warning("权重目录不存在，模型将通过 Docling/HuggingFace 自动下载")
 
 
 @app.get("/health")
@@ -72,8 +101,8 @@ async def health():
 async def predict(req: PredictRequest):
     """
     预测接口
-    - 输入: req.data (base64 编码的 image 数据)
-    - 输出: result (base64 编码的推理结果)
+    - 输入: req.data (base64 编码的 image 数据，包含公式或代码截图)
+    - 输出: result (base64 编码的识别结果，LaTeX 代码或带语言标签的代码文本)
     """
     import time
     t0 = time.time()
@@ -86,17 +115,55 @@ async def predict(req: PredictRequest):
         return PredictResponse(result=base64.b64encode(b"error: invalid base64").decode())
 
     # ============================================================
-    # TODO [推理区域] — 根据模型页面示例代码实现推理逻辑
-    # raw_input 为解码后的原始字节，需根据模态(image)进一步处理
+    # 推理区域 — 使用 Docling DocumentConverter 提取代码/公式
     # ============================================================
-    # output_bytes = run_inference(raw_input)
-    output_bytes = raw_input  # TODO: 替换为真实推理结果
+    tmp_path = None
+    try:
+        # 将图片字节写入临时文件
+        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
+            tmp.write(raw_input)
+            tmp_path = tmp.name
+
+        # 运行文档转换 (Docling 管道自动检测并提取代码/公式)
+        result = converter.convert(tmp_path)
+        doc = result.document
+
+        # 提取代码块 (格式: <_language_> code_content)
+        code_blocks = [
+            item for item, _ in doc.iterate_items() if isinstance(item, CodeItem)
+        ]
+        # 提取公式 (LaTeX 格式)
+        formulas = [
+            item for item, _ in doc.iterate_items() if isinstance(item, FormulaItem)
+        ]
+
+        # 组装输出
+        parts = []
+        for item in code_blocks:
+            lang = item.code_language if hasattr(item, "code_language") else "unknown"
+            parts.append(f"[Code: {lang}]\n{item.text}")
+        for item in formulas:
+            parts.append(f"[Formula]\n{item.text}")
+
+        if parts:
+            output_text = "\n\n".join(parts)
+        else:
+            # 如果没有检测到代码/公式，导出整个文档文本
+            output_text = doc.export_to_markdown() if hasattr(doc, "export_to_markdown") else str(doc)
+
+        output_bytes = output_text.encode("utf-8")
+    except Exception as e:
+        logger.error("推理失败: %s", e)
+        output_bytes = f"error: inference failed - {e}".encode("utf-8")
+    finally:
+        if tmp_path and os.path.exists(tmp_path):
+            os.unlink(tmp_path)
 
     # 编码输出
-    result = base64.b64encode(output_bytes).decode()
+    result_b64 = base64.b64encode(output_bytes).decode()
     elapsed = (time.time() - t0) * 1000
     logger.info("推理完成，耗时 %.1f ms", elapsed)
-    return PredictResponse(result=result)
+    return PredictResponse(result=result_b64)
 
 
 if __name__ == "__main__":

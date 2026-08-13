@@ -1,5 +1,9 @@
 # requirements.txt - google/videoprism-lvt-base-f16r288
 # 仅包含模型特有依赖，基础依赖（torch, vllm, transformers）由基础镜像/create_env.sh 提供
 # 注意: 此模型需 venv 覆盖，覆盖依赖见 create_env.sh
+# 注意: 此模型使用 JAX/Flax 框架（非 PyTorch/transformers）
 
 sentencepiece
+mediapy
+# videoprism 库需从 GitHub 安装，见 create_env.sh
+# pip install git+https://github.com/google-deepmind/videoprism.git

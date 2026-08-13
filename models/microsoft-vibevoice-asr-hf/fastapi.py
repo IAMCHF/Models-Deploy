@@ -5,16 +5,14 @@ FastAPI 服务 - microsoft/VibeVoice-ASR-HF
 任务: 语音转文本ASR(50+语言)
 模态: audio
 
-[重要] 模型加载代码需从 HuggingFace 模型页面获取真实部署代码后填入下方 TODO 区域。
-  - 镜像站优先: https://hf-mirror.com/microsoft/VibeVoice-ASR-HF
-  - 官方兜底:   https://huggingface.co/microsoft/VibeVoice-ASR-HF
-  - 解析页面中 "Use in Transformers" / "Use in vLLM" / "How to use" 等代码片段
-  - 加载优先级: transformers 加载 > vLLM 加载
+模型卡来源: https://hf-mirror.com/microsoft/VibeVoice-ASR-HF
+使用 VibeVoiceAsrForConditionalGeneration + AutoProcessor (transformers>=5.3.0)。
 """
 
 import os
 import base64
 import logging
+import tempfile
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -33,15 +31,31 @@ WEIGHTS_DIR = Path(__file__).resolve().parent / "weights"
 app = FastAPI(title="microsoft-vibevoice-asr-hf", version="1.0.0")
 
 # ============================================================
-# TODO [模型加载区域] — 必须从模型页面获取真实部署代码填入此处
-# 禁止使用通用 AutoModel/pipeline 模板，须参考模型官方示例代码适配
+# 模型加载区域 — 使用 VibeVoiceAsrForConditionalGeneration (来自模型卡 Loading model)
+# 参考: https://hf-mirror.com/microsoft/VibeVoice-ASR-HF
 # ============================================================
-# model = ...  # 从 weights/ 加载模型
-# tokenizer = ...  # 加载 tokenizer / processor
-# 示例参考（需替换为模型页面真实代码）:
-#   from transformers import AutoModelForXxx, AutoTokenizer
-#   model = AutoModelForXxx.from_pretrained(str(WEIGHTS_DIR), ...)
-#   tokenizer = AutoTokenizer.from_pretrained(str(WEIGHTS_DIR))
+import torch
+from transformers import AutoProcessor, VibeVoiceAsrForConditionalGeneration
+
+MODEL_ID = "microsoft/VibeVoice-ASR-HF"
+processor = None
+model = None
+
+
+def load_model():
+    """加载 VibeVoice-ASR 模型"""
+    global processor, model
+    if model is not None:
+        return
+    # 优先使用本地权重目录
+    model_path = str(WEIGHTS_DIR) if WEIGHTS_DIR.exists() and any(WEIGHTS_DIR.iterdir()) else MODEL_ID
+    logger.info("加载模型: %s", model_path)
+
+    processor = AutoProcessor.from_pretrained(model_path)
+    model = VibeVoiceAsrForConditionalGeneration.from_pretrained(
+        model_path, device_map="auto"
+    )
+    logger.info("VibeVoice-ASR 模型加载完成, device=%s, dtype=%s", model.device, model.dtype)
 
 
 class PredictRequest(BaseModel):
@@ -57,9 +71,9 @@ class PredictResponse(BaseModel):
 @app.on_event("startup")
 async def startup_event():
     logger.info("服务启动，权重目录: %s", WEIGHTS_DIR)
-    # TODO: 在此触发模型加载（如需启动时预加载）
+    load_model()
     if not WEIGHTS_DIR.exists():
-        logger.warning("权重目录不存在，请先运行 download_weights.py 下载权重")
+        logger.warning("权重目录不存在，模型将从 HuggingFace 自动下载")
 
 
 @app.get("/health")
@@ -73,7 +87,7 @@ async def predict(req: PredictRequest):
     """
     预测接口
     - 输入: req.data (base64 编码的 audio 数据)
-    - 输出: result (base64 编码的推理结果)
+    - 输出: result (base64 编码的转写文本)
     """
     import time
     t0 = time.time()
@@ -86,11 +100,35 @@ async def predict(req: PredictRequest):
         return PredictResponse(result=base64.b64encode(b"error: invalid base64").decode())
 
     # ============================================================
-    # TODO [推理区域] — 根据模型页面示例代码实现推理逻辑
-    # raw_input 为解码后的原始字节，需根据模态(audio)进一步处理
+    # 推理区域 — 使用 processor.apply_transcription_request + model.generate (来自模型卡)
     # ============================================================
-    # output_bytes = run_inference(raw_input)
-    output_bytes = raw_input  # TODO: 替换为真实推理结果
+    tmp_path = None
+    try:
+        # 将音频字节写入临时文件
+        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
+            tmp.write(raw_input)
+            tmp_path = tmp.name
+
+        # 准备输入 (模型卡示例: processor.apply_transcription_request)
+        inputs = processor.apply_transcription_request(
+            audio=tmp_path,
+        ).to(model.device, model.dtype)
+
+        # 运行推理 (模型卡示例: model.generate)
+        with torch.no_grad():
+            output_ids = model.generate(**inputs)
+
+        # 解码输出 (模型卡示例: processor.decode with return_format)
+        generated_ids = output_ids[:, inputs["input_ids"].shape[1]:]
+        transcription = processor.decode(generated_ids, return_format="transcription_only")[0]
+
+        output_bytes = transcription.encode("utf-8")
+    except Exception as e:
+        logger.error("推理失败: %s", e)
+        output_bytes = f"error: inference failed - {e}".encode("utf-8")
+    finally:
+        if tmp_path and os.path.exists(tmp_path):
+            os.unlink(tmp_path)
 
     # 编码输出
     result = base64.b64encode(output_bytes).decode()

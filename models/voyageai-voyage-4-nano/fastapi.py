@@ -33,15 +33,51 @@ WEIGHTS_DIR = Path(__file__).resolve().parent / "weights"
 app = FastAPI(title="voyageai-voyage-4-nano", version="1.0.0")
 
 # ============================================================
-# TODO [模型加载区域] — 必须从模型页面获取真实部署代码填入此处
-# 禁止使用通用 AutoModel/pipeline 模板，须参考模型官方示例代码适配
+# 模型加载区域 — 基于 voyage-4-nano 官方 "Via Transformers" 代码适配
+# 参考: https://hf-mirror.com/voyageai/voyage-4-nano
 # ============================================================
-# model = ...  # 从 weights/ 加载模型
-# tokenizer = ...  # 加载 tokenizer / processor
-# 示例参考（需替换为模型页面真实代码）:
-#   from transformers import AutoModelForXxx, AutoTokenizer
-#   model = AutoModelForXxx.from_pretrained(str(WEIGHTS_DIR), ...)
-#   tokenizer = AutoTokenizer.from_pretrained(str(WEIGHTS_DIR))
+import io
+import torch
+import numpy as np
+from transformers import AutoModel, AutoTokenizer
+
+
+def mean_pool(
+    last_hidden_states: torch.Tensor, attention_mask: torch.Tensor
+) -> torch.Tensor:
+    """对 last_hidden_state 做注意力掩码加权平均池化"""
+    input_mask_expanded = (
+        attention_mask.unsqueeze(-1).expand(last_hidden_states.size()).float()
+    )
+    sum_embeddings = torch.sum(last_hidden_states * input_mask_expanded, 1)
+    sum_mask = input_mask_expanded.sum(1)
+    sum_mask = torch.clamp(sum_mask, min=1e-9)
+    return sum_embeddings / sum_mask
+
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+_dtype = torch.bfloat16 if torch.cuda.is_available() else torch.float32
+
+# 优先使用 flash_attention_2，不可用时回退到 sdpa
+try:
+    model = AutoModel.from_pretrained(
+        str(WEIGHTS_DIR),
+        trust_remote_code=True,
+        attn_implementation="flash_attention_2",
+        torch_dtype=_dtype,
+    ).to(device)
+except Exception:
+    model = AutoModel.from_pretrained(
+        str(WEIGHTS_DIR),
+        trust_remote_code=True,
+        torch_dtype=_dtype,
+    ).to(device)
+
+tokenizer = AutoTokenizer.from_pretrained(str(WEIGHTS_DIR))
+model.eval()
+
+# 查询提示词（来自官方示例）
+_QUERY_PROMPT = "Represent the query for retrieving supporting documents: "
 
 
 class PredictRequest(BaseModel):
@@ -86,11 +122,34 @@ async def predict(req: PredictRequest):
         return PredictResponse(result=base64.b64encode(b"error: invalid base64").decode())
 
     # ============================================================
-    # TODO [推理区域] — 根据模型页面示例代码实现推理逻辑
-    # raw_input 为解码后的原始字节，需根据模态(text)进一步处理
+    # 推理区域 — 基于 voyage-4-nano 官方 "Via Transformers" 代码适配
+    # 输入: base64 编码的文本 → 解码为字符串 → 添加查询提示词 → 提取嵌入
+    # 输出: 归一化嵌入向量的 numpy .npy 格式 base64 编码
     # ============================================================
-    # output_bytes = run_inference(raw_input)
-    output_bytes = raw_input  # TODO: 替换为真实推理结果
+    try:
+        text = raw_input.decode("utf-8")
+    except Exception as e:
+        logger.error("文本解码失败: %s", e)
+        return PredictResponse(
+            result=base64.b64encode(b"error: invalid utf-8").decode()
+        )
+
+    inputs = tokenizer(
+        _QUERY_PROMPT + text,
+        return_tensors="pt",
+        padding=True,
+        truncation=True,
+        max_length=32768,
+    )
+    inputs = {k: v.to(device) for k, v in inputs.items()}
+    with torch.no_grad():
+        outputs = model.forward(**inputs)
+    embeddings = mean_pool(outputs.last_hidden_state, inputs["attention_mask"])
+    embeddings = torch.nn.functional.normalize(embeddings, p=2, dim=1)
+
+    out_buf = io.BytesIO()
+    np.save(out_buf, embeddings.cpu().numpy())
+    output_bytes = out_buf.getvalue()
 
     # 编码输出
     result = base64.b64encode(output_bytes).decode()

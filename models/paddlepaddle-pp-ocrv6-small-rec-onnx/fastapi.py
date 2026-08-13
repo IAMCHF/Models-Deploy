@@ -14,6 +14,8 @@ FastAPI 服务 - PaddlePaddle/PP-OCRv6_small_rec_onnx
 
 import os
 import base64
+import json
+import tempfile
 import logging
 from pathlib import Path
 
@@ -33,15 +35,31 @@ WEIGHTS_DIR = Path(__file__).resolve().parent / "weights"
 app = FastAPI(title="paddlepaddle-pp-ocrv6-small-rec-onnx", version="1.0.0")
 
 # ============================================================
-# TODO [模型加载区域] — 必须从模型页面获取真实部署代码填入此处
-# 禁止使用通用 AutoModel/pipeline 模板，须参考模型官方示例代码适配
+# 模型加载区域 — 基于 PaddlePaddle/PP-OCRv6_small_rec_onnx 官方示例代码适配
+# 使用 paddleocr.TextRecognition + onnxruntime 引擎
+# 源码参考: https://huggingface.co/PaddlePaddle/PP-OCRv6_small_rec_onnx
+# 注: HF 页面代码示例中 model_name 写为 PP-OCRv6_medium_rec，
+#     但该仓库对应 PP-OCRv6_small_rec，已修正。
 # ============================================================
-# model = ...  # 从 weights/ 加载模型
-# tokenizer = ...  # 加载 tokenizer / processor
-# 示例参考（需替换为模型页面真实代码）:
-#   from transformers import AutoModelForXxx, AutoTokenizer
-#   model = AutoModelForXxx.from_pretrained(str(WEIGHTS_DIR), ...)
-#   tokenizer = AutoTokenizer.from_pretrained(str(WEIGHTS_DIR))
+_model = None
+
+
+def load_model():
+    """加载 PP-OCRv6_small_rec 文本识别模型 (ONNX)"""
+    global _model
+    if _model is not None:
+        return
+    from paddleocr import TextRecognition
+    logger.info("正在加载 PP-OCRv6_small_rec 模型 (ONNX)...")
+    _has_local_weights = (
+        WEIGHTS_DIR.exists()
+        and any(f for f in WEIGHTS_DIR.iterdir() if f.name != ".gitkeep")
+    )
+    if _has_local_weights:
+        _model = TextRecognition(model_dir=str(WEIGHTS_DIR), engine="onnxruntime")
+    else:
+        _model = TextRecognition(model_name="PP-OCRv6_small_rec", engine="onnxruntime")
+    logger.info("PP-OCRv6_small_rec 模型加载完成")
 
 
 class PredictRequest(BaseModel):
@@ -57,9 +75,12 @@ class PredictResponse(BaseModel):
 @app.on_event("startup")
 async def startup_event():
     logger.info("服务启动，权重目录: %s", WEIGHTS_DIR)
-    # TODO: 在此触发模型加载（如需启动时预加载）
     if not WEIGHTS_DIR.exists():
         logger.warning("权重目录不存在，请先运行 download_weights.py 下载权重")
+    try:
+        load_model()
+    except Exception as e:
+        logger.error("模型加载失败: %s", e)
 
 
 @app.get("/health")
@@ -86,11 +107,41 @@ async def predict(req: PredictRequest):
         return PredictResponse(result=base64.b64encode(b"error: invalid base64").decode())
 
     # ============================================================
-    # TODO [推理区域] — 根据模型页面示例代码实现推理逻辑
-    # raw_input 为解码后的原始字节，需根据模态(image)进一步处理
+    # 推理区域 — 基于 PaddleOCR TextRecognition 官方示例代码适配
+    # 输入: base64 编码的图像 → 文本识别结果
+    # 输出: 识别结果 JSON (base64 编码)
     # ============================================================
-    # output_bytes = run_inference(raw_input)
-    output_bytes = raw_input  # TODO: 替换为真实推理结果
+    if _model is None:
+        logger.error("模型未加载，无法推理")
+        return PredictResponse(result=base64.b64encode(b"error: model not loaded").decode())
+
+    # 将 base64 解码后的图像写入临时文件
+    tmp_path = tempfile.mktemp()
+    try:
+        with open(tmp_path, "wb") as f:
+            f.write(raw_input)
+
+        # 运行文本识别
+        output = _model.predict(input=tmp_path, batch_size=1)
+
+        # 收集结果
+        results = []
+        for res in output:
+            try:
+                if hasattr(res, "json") and res.json:
+                    results.append(json.loads(res.json))
+                elif hasattr(res, "to_dict"):
+                    results.append(res.to_dict())
+                else:
+                    results.append({"raw": str(res)})
+            except Exception as e:
+                logger.warning("结果序列化失败: %s", e)
+                results.append({"raw": str(res)})
+
+        output_bytes = json.dumps(results, ensure_ascii=False).encode("utf-8")
+    finally:
+        if os.path.exists(tmp_path):
+            os.unlink(tmp_path)
 
     # 编码输出
     result = base64.b64encode(output_bytes).decode()

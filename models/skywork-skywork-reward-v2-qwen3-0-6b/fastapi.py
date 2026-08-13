@@ -5,20 +5,22 @@ FastAPI 服务 - Skywork/Skywork-Reward-V2-Qwen3-0.6B
 任务: 奖励模型/偏好评分
 模态: text
 
-[重要] 模型加载代码需从 HuggingFace 模型页面获取真实部署代码后填入下方 TODO 区域。
+模型加载与推理代码已根据 HuggingFace 模型页面官方示例适配：
   - 镜像站优先: https://hf-mirror.com/Skywork/Skywork-Reward-V2-Qwen3-0.6B
   - 官方兜底:   https://huggingface.co/Skywork/Skywork-Reward-V2-Qwen3-0.6B
-  - 解析页面中 "Use in Transformers" / "Use in vLLM" / "How to use" 等代码片段
-  - 加载优先级: transformers 加载 > vLLM 加载
+  - 参考页面 "Simple Example in transformers" 代码片段
 """
 
 import os
 import base64
+import json
 import logging
 from pathlib import Path
 
+import torch
 from fastapi import FastAPI
 from pydantic import BaseModel
+from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
 # ============================================================
 # 镜像站优先：确保模型加载时若需下载额外配置/tokenizer 优先走镜像站
@@ -29,37 +31,53 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 logger = logging.getLogger("skywork-skywork-reward-v2-qwen3-0-6b")
 
 WEIGHTS_DIR = Path(__file__).resolve().parent / "weights"
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+# GPU 使用 bfloat16，CPU 使用 float32 以保证兼容性
+TORCH_DTYPE = torch.bfloat16 if DEVICE == "cuda" else torch.float32
 
 app = FastAPI(title="skywork-skywork-reward-v2-qwen3-0-6b", version="1.0.0")
 
 # ============================================================
-# TODO [模型加载区域] — 必须从模型页面获取真实部署代码填入此处
-# 禁止使用通用 AutoModel/pipeline 模板，须参考模型官方示例代码适配
+# 模型加载区域 — 适配自模型页面官方示例
+# 官方示例(以 Llama-3.1-8B 演示，本仓库为 Qwen3-0.6B 变体):
+#   rm = AutoModelForSequenceClassification.from_pretrained(
+#       model_name, torch_dtype=torch.bfloat16, device_map=device,
+#       attn_implementation="flash_attention_2", num_labels=1)
+#   tokenizer = AutoTokenizer.from_pretrained(model_name)
+#   conv1_formatted = tokenizer.apply_chat_template(conv1, tokenize=False)
+#   if tokenizer.bos_token is not None and conv1_formatted.startswith(tokenizer.bos_token):
+#       conv1_formatted = conv1_formatted[len(tokenizer.bos_token):]
+#   conv1_tokenized = tokenizer(conv1_formatted, return_tensors="pt").to(device)
+#   with torch.no_grad():
+#       score1 = rm(**conv1_tokenized).logits[0][0].item()
+# 说明: Qwen3-0.6B 未强制 flash_attention_2，故省略 attn_implementation 以避免额外依赖。
+# 本地部署改为从 weights/ 目录加载。
 # ============================================================
-# model = ...  # 从 weights/ 加载模型
-# tokenizer = ...  # 加载 tokenizer / processor
-# 示例参考（需替换为模型页面真实代码）:
-#   from transformers import AutoModelForXxx, AutoTokenizer
-#   model = AutoModelForXxx.from_pretrained(str(WEIGHTS_DIR), ...)
-#   tokenizer = AutoTokenizer.from_pretrained(str(WEIGHTS_DIR))
+tokenizer = AutoTokenizer.from_pretrained(str(WEIGHTS_DIR))
+model = AutoModelForSequenceClassification.from_pretrained(
+    str(WEIGHTS_DIR),
+    torch_dtype=TORCH_DTYPE,
+    num_labels=1,
+)
+model.to(DEVICE)
+model.eval()
 
 
 class PredictRequest(BaseModel):
-    """预测请求：data 为 base64 编码输入"""
+    """预测请求：data 为 base64 编码输入(JSON {"prompt","response"} 的 UTF-8 字节)"""
     data: str
 
 
 class PredictResponse(BaseModel):
-    """预测响应：result 为 base64 编码输出"""
+    """预测响应：result 为 base64 编码输出(推理结果 JSON 的 UTF-8 字节)"""
     result: str
 
 
 @app.on_event("startup")
 async def startup_event():
-    logger.info("服务启动，权重目录: %s", WEIGHTS_DIR)
-    # TODO: 在此触发模型加载（如需启动时预加载）
+    logger.info("服务启动，权重目录: %s，设备: %s，dtype: %s", WEIGHTS_DIR, DEVICE, TORCH_DTYPE)
     if not WEIGHTS_DIR.exists():
-        logger.warning("权重目录不存在，请先运行 download_weights.py 下载权重")
+        logger.warning("权重目录不存在，请先下载权重")
 
 
 @app.get("/health")
@@ -72,8 +90,9 @@ async def health():
 async def predict(req: PredictRequest):
     """
     预测接口
-    - 输入: req.data (base64 编码的 text 数据)
-    - 输出: result (base64 编码的推理结果)
+    - 输入: req.data (base64 编码的 JSON，形如 {"prompt": "...", "response": "..."})
+    - 输出: result (base64 编码的 JSON，含 reward score)
+    注意: 官方建议不使用 system prompt；输入长度建议 <= 16384 tokens。
     """
     import time
     t0 = time.time()
@@ -81,16 +100,42 @@ async def predict(req: PredictRequest):
     # 解码输入
     try:
         raw_input = base64.b64decode(req.data)
+        payload = json.loads(raw_input.decode("utf-8"))
+        prompt = payload["prompt"]
+        response = payload["response"]
     except Exception as e:
-        logger.error("base64 解码失败: %s", e)
-        return PredictResponse(result=base64.b64encode(b"error: invalid base64").decode())
+        logger.error("输入解码失败(需 JSON {prompt, response}): %s", e)
+        return PredictResponse(result=base64.b64encode(b"error: invalid input (expect json {prompt,response})").decode())
 
     # ============================================================
-    # TODO [推理区域] — 根据模型页面示例代码实现推理逻辑
-    # raw_input 为解码后的原始字节，需根据模态(text)进一步处理
+    # 推理区域 — 计算对话的奖励分数
+    # 参考页面 "Simple Example in transformers" 示例:
+    #   conv = [{"role": "user", "content": prompt}, {"role": "assistant", "content": response}]
+    #   conv_formatted = tokenizer.apply_chat_template(conv, tokenize=False)
+    #   score = rm(**conv_tokenized).logits[0][0].item()
     # ============================================================
-    # output_bytes = run_inference(raw_input)
-    output_bytes = raw_input  # TODO: 替换为真实推理结果
+    try:
+        conv = [
+            {"role": "user", "content": prompt},
+            {"role": "assistant", "content": response},
+        ]
+        conv_formatted = tokenizer.apply_chat_template(conv, tokenize=False)
+        # 去除可能的重复 bos token
+        if tokenizer.bos_token is not None and conv_formatted.startswith(tokenizer.bos_token):
+            conv_formatted = conv_formatted[len(tokenizer.bos_token):]
+        conv_tokenized = tokenizer(
+            conv_formatted,
+            return_tensors="pt",
+            truncation=True,
+            max_length=16384,
+        ).to(DEVICE)
+        with torch.no_grad():
+            score = model(**conv_tokenized).logits[0][0].item()
+        result_payload = {"score": float(score)}
+        output_bytes = json.dumps(result_payload, ensure_ascii=False).encode("utf-8")
+    except Exception as e:
+        logger.exception("推理失败: %s", e)
+        output_bytes = f"error: inference failed: {e}".encode("utf-8")
 
     # 编码输出
     result = base64.b64encode(output_bytes).decode()

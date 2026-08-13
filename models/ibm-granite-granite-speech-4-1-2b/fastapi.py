@@ -5,16 +5,14 @@ FastAPI 服务 - ibm-granite/granite-speech-4.1-2b
 任务: 多语言ASR/语音翻译
 模态: audio
 
-[重要] 模型加载代码需从 HuggingFace 模型页面获取真实部署代码后填入下方 TODO 区域。
-  - 镜像站优先: https://hf-mirror.com/ibm-granite/granite-speech-4.1-2b
-  - 官方兜底:   https://huggingface.co/ibm-granite/granite-speech-4.1-2b
-  - 解析页面中 "Use in Transformers" / "Use in vLLM" / "How to use" 等代码片段
-  - 加载优先级: transformers 加载 > vLLM 加载
+模型卡来源: https://hf-mirror.com/ibm-granite/granite-speech-4.1-2b
+使用 AutoModelForSpeechSeq2Seq + AutoProcessor (transformers>=4.52.1)。
 """
 
 import os
 import base64
 import logging
+import tempfile
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -33,15 +31,35 @@ WEIGHTS_DIR = Path(__file__).resolve().parent / "weights"
 app = FastAPI(title="ibm-granite-granite-speech-4-1-2b", version="1.0.0")
 
 # ============================================================
-# TODO [模型加载区域] — 必须从模型页面获取真实部署代码填入此处
-# 禁止使用通用 AutoModel/pipeline 模板，须参考模型官方示例代码适配
+# 模型加载区域 — 使用 AutoModelForSpeechSeq2Seq (来自模型卡 Usage with transformers)
+# 参考: https://hf-mirror.com/ibm-granite/granite-speech-4.1-2b
 # ============================================================
-# model = ...  # 从 weights/ 加载模型
-# tokenizer = ...  # 加载 tokenizer / processor
-# 示例参考（需替换为模型页面真实代码）:
-#   from transformers import AutoModelForXxx, AutoTokenizer
-#   model = AutoModelForXxx.from_pretrained(str(WEIGHTS_DIR), ...)
-#   tokenizer = AutoTokenizer.from_pretrained(str(WEIGHTS_DIR))
+import torch
+import torchaudio
+from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor
+
+MODEL_ID = "ibm-granite/granite-speech-4.1-2b"
+processor = None
+tokenizer = None
+model = None
+device = None
+
+
+def load_model():
+    """加载 Granite Speech 4.1 2B 模型"""
+    global processor, tokenizer, model, device
+    if model is not None:
+        return
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    model_path = str(WEIGHTS_DIR) if WEIGHTS_DIR.exists() and any(WEIGHTS_DIR.iterdir()) else MODEL_ID
+    logger.info("加载模型: %s, device=%s", model_path, device)
+
+    processor = AutoProcessor.from_pretrained(model_path)
+    tokenizer = processor.tokenizer
+    model = AutoModelForSpeechSeq2Seq.from_pretrained(
+        model_path, device_map=device, torch_dtype=torch.bfloat16
+    )
+    logger.info("Granite Speech 4.1 2B 模型加载完成")
 
 
 class PredictRequest(BaseModel):
@@ -57,9 +75,9 @@ class PredictResponse(BaseModel):
 @app.on_event("startup")
 async def startup_event():
     logger.info("服务启动，权重目录: %s", WEIGHTS_DIR)
-    # TODO: 在此触发模型加载（如需启动时预加载）
+    load_model()
     if not WEIGHTS_DIR.exists():
-        logger.warning("权重目录不存在，请先运行 download_weights.py 下载权重")
+        logger.warning("权重目录不存在，模型将从 HuggingFace 自动下载")
 
 
 @app.get("/health")
@@ -72,8 +90,8 @@ async def health():
 async def predict(req: PredictRequest):
     """
     预测接口
-    - 输入: req.data (base64 编码的 audio 数据)
-    - 输出: result (base64 编码的推理结果)
+    - 输入: req.data (base64 编码的 audio 数据，需为 16kHz 单声道 WAV)
+    - 输出: result (base64 编码的转写文本)
     """
     import time
     t0 = time.time()
@@ -86,11 +104,55 @@ async def predict(req: PredictRequest):
         return PredictResponse(result=base64.b64encode(b"error: invalid base64").decode())
 
     # ============================================================
-    # TODO [推理区域] — 根据模型页面示例代码实现推理逻辑
-    # raw_input 为解码后的原始字节，需根据模态(audio)进一步处理
+    # 推理区域 — 使用 torchaudio + processor + model.generate (来自模型卡)
     # ============================================================
-    # output_bytes = run_inference(raw_input)
-    output_bytes = raw_input  # TODO: 替换为真实推理结果
+    tmp_path = None
+    try:
+        # 将音频字节写入临时文件
+        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
+            tmp.write(raw_input)
+            tmp_path = tmp.name
+
+        # 加载音频 (模型卡示例: torchaudio.load, 需 mono 16kHz)
+        wav, sr = torchaudio.load(tmp_path, normalize=True)
+        # 确保单声道
+        if wav.shape[0] > 1:
+            wav = wav.mean(dim=0, keepdim=True)
+        # 重采样到 16kHz (如需要)
+        if sr != 16000:
+            resampler = torchaudio.transforms.Resample(orig_freq=sr, new_freq=16000)
+            wav = resampler(wav)
+            sr = 16000
+
+        # 创建文本提示 (模型卡示例: <|audio|> 前缀 + 转写指令)
+        user_prompt = "<|audio|>transcribe the speech with proper punctuation and capitalization."
+        chat = [
+            {"role": "user", "content": user_prompt},
+        ]
+        prompt = tokenizer.apply_chat_template(chat, tokenize=False, add_generation_prompt=True)
+
+        # 运行 processor + model (模型卡示例)
+        model_inputs = processor(prompt, wav, device=device, return_tensors="pt").to(device)
+        with torch.no_grad():
+            model_outputs = model.generate(
+                **model_inputs, max_new_tokens=200, do_sample=False, num_beams=1
+            )
+
+        # 解码输出 (模型卡示例: 截取新生成的 token)
+        num_input_tokens = model_inputs["input_ids"].shape[-1]
+        new_tokens = model_outputs[0, num_input_tokens:].unsqueeze(0)
+        output_text = tokenizer.batch_decode(
+            new_tokens, add_special_tokens=False, skip_special_tokens=True
+        )
+
+        transcription = output_text[0] if output_text else ""
+        output_bytes = transcription.encode("utf-8")
+    except Exception as e:
+        logger.error("推理失败: %s", e)
+        output_bytes = f"error: inference failed - {e}".encode("utf-8")
+    finally:
+        if tmp_path and os.path.exists(tmp_path):
+            os.unlink(tmp_path)
 
     # 编码输出
     result = base64.b64encode(output_bytes).decode()

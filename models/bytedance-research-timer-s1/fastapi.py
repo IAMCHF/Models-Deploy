@@ -33,15 +33,28 @@ WEIGHTS_DIR = Path(__file__).resolve().parent / "weights"
 app = FastAPI(title="bytedance-research-timer-s1", version="1.0.0")
 
 # ============================================================
-# TODO [模型加载区域] — 必须从模型页面获取真实部署代码填入此处
-# 禁止使用通用 AutoModel/pipeline 模板，须参考模型官方示例代码适配
+# 模型加载区域 — 从 HuggingFace 模型页面获取的真实部署代码
+# 来源: https://hf-mirror.com/bytedance-research/Timer-S1
+# 官方库: pip install torch accelerate transformers~=4.57.1
 # ============================================================
-# model = ...  # 从 weights/ 加载模型
-# tokenizer = ...  # 加载 tokenizer / processor
-# 示例参考（需替换为模型页面真实代码）:
-#   from transformers import AutoModelForXxx, AutoTokenizer
-#   model = AutoModelForXxx.from_pretrained(str(WEIGHTS_DIR), ...)
-#   tokenizer = AutoTokenizer.from_pretrained(str(WEIGHTS_DIR))
+import json
+import torch
+from transformers import AutoModelForCausalLM
+
+model = None
+
+
+def load_model():
+    """加载 Timer-S1 时间序列 MoE 预测模型"""
+    global model
+    if model is None:
+        logger.info("正在加载 Timer-S1 模型，权重目录: %s", WEIGHTS_DIR)
+        model = AutoModelForCausalLM.from_pretrained(
+            str(WEIGHTS_DIR),
+            trust_remote_code=True,
+            device_map="auto",
+        )
+        logger.info("Timer-S1 模型加载完成")
 
 
 class PredictRequest(BaseModel):
@@ -57,9 +70,9 @@ class PredictResponse(BaseModel):
 @app.on_event("startup")
 async def startup_event():
     logger.info("服务启动，权重目录: %s", WEIGHTS_DIR)
-    # TODO: 在此触发模型加载（如需启动时预加载）
     if not WEIGHTS_DIR.exists():
         logger.warning("权重目录不存在，请先运行 download_weights.py 下载权重")
+    load_model()
 
 
 @app.get("/health")
@@ -81,16 +94,34 @@ async def predict(req: PredictRequest):
     # 解码输入
     try:
         raw_input = base64.b64decode(req.data)
+        payload = json.loads(raw_input.decode("utf-8"))
     except Exception as e:
-        logger.error("base64 解码失败: %s", e)
-        return PredictResponse(result=base64.b64encode(b"error: invalid base64").decode())
+        logger.error("输入解码失败: %s", e)
+        return PredictResponse(result=base64.b64encode(b"error: invalid input").decode())
 
     # ============================================================
-    # TODO [推理区域] — 根据模型页面示例代码实现推理逻辑
-    # raw_input 为解码后的原始字节，需根据模态(tabular)进一步处理
+    # 推理区域 — 基于 Timer-S1 官方示例代码适配
+    # 输入 JSON 格式: {"seqs": [[...]], "forecast_length": 256}
+    #   seqs: (batch, lookback_length) 历史时序数据
+    #   forecast_length: 预测步数
+    # 输出 JSON 格式: {"quantiles": [[[...]]], "quantile_levels": [...]}
+    #   quantiles: (batch, 9, forecast_length) 分位数预测
     # ============================================================
-    # output_bytes = run_inference(raw_input)
-    output_bytes = raw_input  # TODO: 替换为真实推理结果
+    try:
+        seqs = torch.tensor(payload["seqs"], dtype=torch.float32).to(model.device)
+        forecast_length = payload.get("forecast_length", 256)
+
+        with torch.no_grad():
+            output = model.generate(seqs, max_new_tokens=forecast_length, revin=True)
+
+        result_data = {
+            "quantiles": output.tolist(),
+            "quantile_levels": [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9],
+        }
+        output_bytes = json.dumps(result_data).encode("utf-8")
+    except Exception as e:
+        logger.error("推理失败: %s", e)
+        output_bytes = json.dumps({"error": str(e)}).encode("utf-8")
 
     # 编码输出
     result = base64.b64encode(output_bytes).decode()

@@ -33,15 +33,43 @@ WEIGHTS_DIR = Path(__file__).resolve().parent / "weights"
 app = FastAPI(title="google-videoprism-lvt-base-f16r288", version="1.0.0")
 
 # ============================================================
-# TODO [模型加载区域] — 必须从模型页面获取真实部署代码填入此处
-# 禁止使用通用 AutoModel/pipeline 模板，须参考模型官方示例代码适配
+# 模型加载区域 — 基于 VideoPrism 官方 GitHub 代码适配
+# HF 页面指向 GitHub 仓库: https://github.com/google-deepmind/videoprism
+# 模型使用 JAX/Flax 框架（非 transformers），library_name: videoprism
 # ============================================================
-# model = ...  # 从 weights/ 加载模型
-# tokenizer = ...  # 加载 tokenizer / processor
-# 示例参考（需替换为模型页面真实代码）:
-#   from transformers import AutoModelForXxx, AutoTokenizer
-#   model = AutoModelForXxx.from_pretrained(str(WEIGHTS_DIR), ...)
-#   tokenizer = AutoTokenizer.from_pretrained(str(WEIGHTS_DIR))
+import io
+import tempfile
+import numpy as np
+import jax
+import jax.numpy as jnp
+import mediapy
+from videoprism import models as vp
+
+MODEL_NAME = "videoprism_lvt_public_v1_base"
+CHECKPOINT_FILE = "flax_lvt_base_f16r288_repeated.npz"
+NUM_FRAMES = 16
+FRAME_SIZE = 288
+
+flax_model = vp.get_model(MODEL_NAME)
+
+# 优先从本地权重目录加载，若不存在则从 HF 镜像下载
+_local_ckpt = WEIGHTS_DIR / CHECKPOINT_FILE
+if _local_ckpt.exists():
+    loaded_state = vp.load_pretrained_weights(
+        MODEL_NAME, checkpoint_path=str(_local_ckpt)
+    )
+else:
+    logger.info("本地权重不存在，从 HF 镜像下载: %s", MODEL_NAME)
+    loaded_state = vp.load_pretrained_weights(MODEL_NAME)
+
+
+@jax.jit
+def forward_video_only(inputs):
+    """仅提取视频嵌入（text 输入传 None 跳过文本编码）"""
+    video_embeddings, _, _ = flax_model.apply(
+        loaded_state, inputs, None, None, train=False
+    )
+    return video_embeddings
 
 
 class PredictRequest(BaseModel):
@@ -86,11 +114,36 @@ async def predict(req: PredictRequest):
         return PredictResponse(result=base64.b64encode(b"error: invalid base64").decode())
 
     # ============================================================
-    # TODO [推理区域] — 根据模型页面示例代码实现推理逻辑
-    # raw_input 为解码后的原始字节，需根据模态(video)进一步处理
+    # 推理区域 — 基于 VideoPrism 官方 Colab 代码适配
+    # 输入: base64 编码的视频 → 采样16帧 → 缩放至288x288 → 归一化至[0,1]
+    # 输出: 视频全局嵌入向量的 numpy .npy 格式 base64 编码
     # ============================================================
-    # output_bytes = run_inference(raw_input)
-    output_bytes = raw_input  # TODO: 替换为真实推理结果
+    with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as tmp:
+        tmp.write(raw_input)
+        tmp_path = tmp.name
+    try:
+        # 读取视频
+        frames = mediapy.read_video(tmp_path)
+        # 采样 16 帧
+        frame_indices = np.linspace(
+            0, len(frames), num=NUM_FRAMES, endpoint=False, dtype=np.int32
+        )
+        frames = np.array([frames[i] for i in frame_indices])
+        # 缩放至 288x288
+        frames = mediapy.resize_video(frames, shape=(FRAME_SIZE, FRAME_SIZE))
+        # 归一化至 [0.0, 1.0]
+        frames = mediapy.to_float01(frames)
+        # 添加 batch 维度并转为 JAX 数组
+        video_inputs = jnp.asarray(frames[None, ...])
+
+        # 推理：提取视频嵌入
+        video_embeddings = forward_video_only(video_inputs)
+
+        out_buf = io.BytesIO()
+        np.save(out_buf, np.asarray(video_embeddings))
+        output_bytes = out_buf.getvalue()
+    finally:
+        os.unlink(tmp_path)
 
     # 编码输出
     result = base64.b64encode(output_bytes).decode()

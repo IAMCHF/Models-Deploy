@@ -64,7 +64,8 @@ pip install --upgrade pip
 # 5. 安装覆盖版本依赖（特殊模型）
 # ------------------------------------------------------------
 echo "[env] 安装覆盖版本依赖"
-    pip install jax flax SentencePiece
+    pip install jax flax SentencePiece mediapy
+    pip install git+https://github.com/google-deepmind/videoprism.git
 
 # ------------------------------------------------------------
 # 6. 安装 requirements.txt 模型特有依赖

@@ -33,15 +33,28 @@ WEIGHTS_DIR = Path(__file__).resolve().parent / "weights"
 app = FastAPI(title="k-iwa-time-anchor-modernbert-32m", version="1.0.0")
 
 # ============================================================
-# TODO [模型加载区域] — 必须从模型页面获取真实部署代码填入此处
-# 禁止使用通用 AutoModel/pipeline 模板，须参考模型官方示例代码适配
+# 模型加载区域 — 从 HuggingFace 模型页面获取的真实部署代码
+# 来源: https://hf-mirror.com/K-Iwa/time-anchor-modernbert-32m
+# 官方库: pip install time-anchor
+# 注意: time_anchor 的 predict_time_anchor 函数内部管理模型加载，
+#       此处仅导入函数并设置 checkpoint 路径
 # ============================================================
-# model = ...  # 从 weights/ 加载模型
-# tokenizer = ...  # 加载 tokenizer / processor
-# 示例参考（需替换为模型页面真实代码）:
-#   from transformers import AutoModelForXxx, AutoTokenizer
-#   model = AutoModelForXxx.from_pretrained(str(WEIGHTS_DIR), ...)
-#   tokenizer = AutoTokenizer.from_pretrained(str(WEIGHTS_DIR))
+import json
+import numpy as np
+from time_anchor import predict_time_anchor
+
+# checkpoint 路径：优先本地 weights 目录，回退到 HF Hub model id
+CHECKPOINT = str(WEIGHTS_DIR) if WEIGHTS_DIR.exists() else "K-Iwa/time-anchor-modernbert-32m"
+
+model = None  # predict_time_anchor 内部管理模型加载
+
+
+def load_model():
+    """验证 time_anchor 包可用（模型在推理时按需加载）"""
+    global model
+    if model is None:
+        logger.info("time_anchor 包已导入，checkpoint 路径: %s", CHECKPOINT)
+        model = True  # 标记为已初始化
 
 
 class PredictRequest(BaseModel):
@@ -57,9 +70,9 @@ class PredictResponse(BaseModel):
 @app.on_event("startup")
 async def startup_event():
     logger.info("服务启动，权重目录: %s", WEIGHTS_DIR)
-    # TODO: 在此触发模型加载（如需启动时预加载）
     if not WEIGHTS_DIR.exists():
         logger.warning("权重目录不存在，请先运行 download_weights.py 下载权重")
+    load_model()
 
 
 @app.get("/health")
@@ -81,16 +94,43 @@ async def predict(req: PredictRequest):
     # 解码输入
     try:
         raw_input = base64.b64decode(req.data)
+        payload = json.loads(raw_input.decode("utf-8"))
     except Exception as e:
-        logger.error("base64 解码失败: %s", e)
-        return PredictResponse(result=base64.b64encode(b"error: invalid base64").decode())
+        logger.error("输入解码失败: %s", e)
+        return PredictResponse(result=base64.b64encode(b"error: invalid input").decode())
 
     # ============================================================
-    # TODO [推理区域] — 根据模型页面示例代码实现推理逻辑
-    # raw_input 为解码后的原始字节，需根据模态(tabular)进一步处理
+    # 推理区域 — 基于 time-anchor 官方示例代码适配
+    # 输入 JSON 格式: {"target_context": [...], "prediction_length": 64,
+    #                  "quantile_levels": [0.1, 0.5, 0.9]}
+    # 输出 JSON 格式: {"forecast_rows": [...]}
     # ============================================================
-    # output_bytes = run_inference(raw_input)
-    output_bytes = raw_input  # TODO: 替换为真实推理结果
+    try:
+        target_context = np.array(payload["target_context"], dtype=np.float32)
+        prediction_length = payload.get("prediction_length", 64)
+        quantile_levels = tuple(payload.get("quantile_levels", [0.1, 0.5, 0.9]))
+
+        result = predict_time_anchor(
+            CHECKPOINT,
+            target_context=target_context,
+            prediction_length=prediction_length,
+            quantile_levels=quantile_levels,
+        )
+
+        forecast_rows = result.forecast_rows
+        # 将 forecast_rows 转为可序列化的 list of dict
+        serializable_rows = []
+        for row in forecast_rows:
+            serializable_rows.append({
+                k: (v.tolist() if hasattr(v, "tolist") else v)
+                for k, v in row.items()
+            })
+
+        result_data = {"forecast_rows": serializable_rows}
+        output_bytes = json.dumps(result_data).encode("utf-8")
+    except Exception as e:
+        logger.error("推理失败: %s", e)
+        output_bytes = json.dumps({"error": str(e)}).encode("utf-8")
 
     # 编码输出
     result = base64.b64encode(output_bytes).decode()

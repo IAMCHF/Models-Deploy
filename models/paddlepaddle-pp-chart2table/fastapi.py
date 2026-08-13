@@ -5,16 +5,15 @@ FastAPI 服务 - PaddlePaddle/PP-Chart2Table
 任务: 图表转表格
 模态: image
 
-[重要] 模型加载代码需从 HuggingFace 模型页面获取真实部署代码后填入下方 TODO 区域。
-  - 镜像站优先: https://hf-mirror.com/PaddlePaddle/PP-Chart2Table
-  - 官方兜底:   https://huggingface.co/PaddlePaddle/PP-Chart2Table
-  - 解析页面中 "Use in Transformers" / "Use in vLLM" / "How to use" 等代码片段
-  - 加载优先级: transformers 加载 > vLLM 加载
+模型卡来源: https://hf-mirror.com/PaddlePaddle/PP-Chart2Table
+使用 PaddleX create_model API 加载模型。
 """
 
 import os
 import base64
+import json
 import logging
+import tempfile
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -33,15 +32,31 @@ WEIGHTS_DIR = Path(__file__).resolve().parent / "weights"
 app = FastAPI(title="paddlepaddle-pp-chart2table", version="1.0.0")
 
 # ============================================================
-# TODO [模型加载区域] — 必须从模型页面获取真实部署代码填入此处
-# 禁止使用通用 AutoModel/pipeline 模板，须参考模型官方示例代码适配
+# 模型加载区域 — 使用 PaddleX create_model API (来自模型卡 Quick Start)
+# 参考: https://hf-mirror.com/PaddlePaddle/PP-Chart2Table
 # ============================================================
-# model = ...  # 从 weights/ 加载模型
-# tokenizer = ...  # 加载 tokenizer / processor
-# 示例参考（需替换为模型页面真实代码）:
-#   from transformers import AutoModelForXxx, AutoTokenizer
-#   model = AutoModelForXxx.from_pretrained(str(WEIGHTS_DIR), ...)
-#   tokenizer = AutoTokenizer.from_pretrained(str(WEIGHTS_DIR))
+from paddlex import create_model
+
+model = None
+
+
+def load_model():
+    """加载 PP-Chart2Table 模型"""
+    global model
+    if model is not None:
+        return
+    # 优先使用本地权重目录，否则使用模型名称(自动下载)
+    if WEIGHTS_DIR.exists() and any(WEIGHTS_DIR.iterdir()):
+        logger.info("从本地权重目录加载模型: %s", WEIGHTS_DIR)
+        try:
+            model = create_model(str(WEIGHTS_DIR))
+        except Exception as e:
+            logger.warning("本地加载失败(%s)，回退到模型名称加载", e)
+            model = create_model("PP-Chart2Table")
+    else:
+        logger.info("使用模型名称 PP-Chart2Table 加载(自动下载)")
+        model = create_model("PP-Chart2Table")
+    logger.info("PP-Chart2Table 模型加载完成")
 
 
 class PredictRequest(BaseModel):
@@ -57,9 +72,9 @@ class PredictResponse(BaseModel):
 @app.on_event("startup")
 async def startup_event():
     logger.info("服务启动，权重目录: %s", WEIGHTS_DIR)
-    # TODO: 在此触发模型加载（如需启动时预加载）
+    load_model()
     if not WEIGHTS_DIR.exists():
-        logger.warning("权重目录不存在，请先运行 download_weights.py 下载权重")
+        logger.warning("权重目录不存在，模型将通过 PaddleX 自动下载")
 
 
 @app.get("/health")
@@ -73,7 +88,7 @@ async def predict(req: PredictRequest):
     """
     预测接口
     - 输入: req.data (base64 编码的 image 数据)
-    - 输出: result (base64 编码的推理结果)
+    - 输出: result (base64 编码的推理结果，JSON 格式的表格数据)
     """
     import time
     t0 = time.time()
@@ -86,11 +101,45 @@ async def predict(req: PredictRequest):
         return PredictResponse(result=base64.b64encode(b"error: invalid base64").decode())
 
     # ============================================================
-    # TODO [推理区域] — 根据模型页面示例代码实现推理逻辑
-    # raw_input 为解码后的原始字节，需根据模态(image)进一步处理
+    # 推理区域 — 使用 PaddleX model.predict (来自模型卡 Model Usage)
     # ============================================================
-    # output_bytes = run_inference(raw_input)
-    output_bytes = raw_input  # TODO: 替换为真实推理结果
+    tmp_path = None
+    tmp_json_path = None
+    try:
+        # 将图片字节写入临时文件
+        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
+            tmp.write(raw_input)
+            tmp_path = tmp.name
+
+        # 运行推理 (模型卡示例代码)
+        results = model.predict(
+            input={"image": tmp_path},
+            batch_size=1
+        )
+
+        # 提取结果 (模型卡示例: res.save_to_json)
+        output_text = ""
+        for res in results:
+            # 保存到临时 JSON 文件并读取
+            with tempfile.NamedTemporaryFile(suffix=".json", delete=False, mode="w") as tmp_json:
+                tmp_json_path = tmp_json.name
+            res.save_to_json(tmp_json_path)
+            with open(tmp_json_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            # 模型卡输出格式: {'res': {'image': '...', 'result': '表格文本'}}
+            result_dict = data.get("res", data) if isinstance(data, dict) else {}
+            output_text = result_dict.get("result", json.dumps(data, ensure_ascii=False))
+
+        output_bytes = output_text.encode("utf-8")
+    except Exception as e:
+        logger.error("推理失败: %s", e)
+        output_bytes = f"error: inference failed - {e}".encode("utf-8")
+    finally:
+        # 清理临时文件
+        if tmp_path and os.path.exists(tmp_path):
+            os.unlink(tmp_path)
+        if tmp_json_path and os.path.exists(tmp_json_path):
+            os.unlink(tmp_json_path)
 
     # 编码输出
     result = base64.b64encode(output_bytes).decode()

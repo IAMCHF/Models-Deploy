@@ -33,15 +33,17 @@ WEIGHTS_DIR = Path(__file__).resolve().parent / "weights"
 app = FastAPI(title="aratako-miocodec-25hz-44-1khz-v2", version="1.0.0")
 
 # ============================================================
-# TODO [模型加载区域] — 必须从模型页面获取真实部署代码填入此处
-# 禁止使用通用 AutoModel/pipeline 模板，须参考模型官方示例代码适配
+# 模型加载区域 — 基于 MioCodec 官方 Quick Start 代码适配
+# 参考: https://hf-mirror.com/Aratako/MioCodec-25Hz-44.1kHz-v2
 # ============================================================
-# model = ...  # 从 weights/ 加载模型
-# tokenizer = ...  # 加载 tokenizer / processor
-# 示例参考（需替换为模型页面真实代码）:
-#   from transformers import AutoModelForXxx, AutoTokenizer
-#   model = AutoModelForXxx.from_pretrained(str(WEIGHTS_DIR), ...)
-#   tokenizer = AutoTokenizer.from_pretrained(str(WEIGHTS_DIR))
+import io
+import tempfile
+import torch
+import soundfile as sf
+from miocodec import MioCodecModel, load_audio
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+model = MioCodecModel.from_pretrained(str(WEIGHTS_DIR)).eval().to(device)
 
 
 class PredictRequest(BaseModel):
@@ -86,11 +88,24 @@ async def predict(req: PredictRequest):
         return PredictResponse(result=base64.b64encode(b"error: invalid base64").decode())
 
     # ============================================================
-    # TODO [推理区域] — 根据模型页面示例代码实现推理逻辑
-    # raw_input 为解码后的原始字节，需根据模态(audio)进一步处理
+    # 推理区域 — 基于 MioCodec 官方 Basic Inference 代码适配
+    # 输入: base64 编码的 WAV 音频 → 编码后解码重建 → 输出 WAV 字节
     # ============================================================
-    # output_bytes = run_inference(raw_input)
-    output_bytes = raw_input  # TODO: 替换为真实推理结果
+    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
+        tmp.write(raw_input)
+        tmp_path = tmp.name
+    try:
+        waveform = load_audio(tmp_path, sample_rate=model.config.sample_rate).to(device)
+        features = model.encode(waveform)
+        resynth = model.decode(
+            content_token_indices=features.content_token_indices,
+            global_embedding=features.global_embedding,
+        )
+        out_buf = io.BytesIO()
+        sf.write(out_buf, resynth.cpu().numpy(), model.config.sample_rate)
+        output_bytes = out_buf.getvalue()
+    finally:
+        os.unlink(tmp_path)
 
     # 编码输出
     result = base64.b64encode(output_bytes).decode()
