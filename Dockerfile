@@ -11,8 +11,12 @@ ENV DEBIAN_FRONTEND=noninteractive
 # 系统工具层
 # ------------------------------------------------------------
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        git wget curl vim ffmpeg software-properties-common \
+        git wget curl vim nano ffmpeg software-properties-common \
         ca-certificates gnupg build-essential \
+        zip unzip tar gzip bzip2 xz-utils file rsync dos2unix \
+        htop tmux less tree jq socat \
+        net-tools iproute2 procps psmisc \
+        openssh-client \
     && rm -rf /var/lib/apt/lists/*
 
 # ------------------------------------------------------------
