@@ -15,9 +15,10 @@ venv/
 models/*/weights/*
 !models/*/weights/.gitkeep
 
-# 测试数据（按需下载）
-models/*/test/test_data/*
-!models/*/test/test_data/.gitkeep
+# 测试数据（与 test.py 同级，按需下载）
+models/*/test/*
+!models/*/test/test.py
+!models/*/test/.gitkeep
 
 # 环境记录
 models/*/env_info.txt

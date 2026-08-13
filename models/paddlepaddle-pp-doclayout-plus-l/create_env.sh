@@ -1,8 +1,9 @@
 #!/bin/bash
 # ============================================================
-# create_env.sh - 创建虚拟环境（仅内网本地执行，非 GitHub Actions）
+# create_env.sh - 创建虚拟环境（仅内网本地执行）
 # 模型: PaddlePaddle/PP-DocLayout_plus-L
-# 策略: PaddlePaddle 模型：需 PaddlePaddle GPU（自带 CUDA 12.6 库）
+# 策略: PaddlePaddle 模型
+# PyPI 镜像源: https://pypi.mirrors.ustc.edu.cn/simple（中科大，测速最快）
 # ============================================================
 set -e
 
@@ -14,28 +15,15 @@ echo "[env] 开始创建虚拟环境: paddlepaddle-pp-doclayout-plus-l"
 echo "=========================================="
 
 # ------------------------------------------------------------
-# 1. 换源：测试清华、阿里、中科大源速度，选择最快的一个
+# 1. 配置 PyPI 镜像源（中科大，已测速最快）
 # ------------------------------------------------------------
-echo "[env] 测试国内 PyPI 镜像源速度..."
-BEST_SOURCE=""
-for SOURCE in \
-    "https://pypi.tuna.tsinghua.edu.cn/simple" \
-    "https://mirrors.aliyun.com/pypi/simple" \
-    "https://pypi.mirrors.ustc.edu.cn/simple"; do
-    TIME=$(curl -s -o /dev/null -w "%{time_total}" --connect-timeout 3 "$SOURCE" 2>/dev/null || echo "999")
-    echo "  $SOURCE -> ${TIME}s"
-    if [ -z "$BEST_SOURCE" ] || (( $(echo "$TIME < $BEST_TIME" | bc -l 2>/dev/null || echo 0) )); then
-        BEST_SOURCE="$SOURCE"
-        BEST_TIME="$TIME"
-    fi
-done
-echo "[env] 选择最快源: $BEST_SOURCE"
 mkdir -p ~/.config/pip
-cat > ~/.config/pip/pip.conf << EOF
+cat > ~/.config/pip/pip.conf << 'PIPEOF'
 [global]
-index-url = $BEST_SOURCE
-trusted-host = $(echo $BEST_SOURCE | sed 's|https://||; s|/simple||')
-EOF
+index-url = https://pypi.mirrors.ustc.edu.cn/simple
+trusted-host = pypi.mirrors.ustc.edu.cn
+PIPEOF
+echo "[env] PyPI 镜像源: https://pypi.mirrors.ustc.edu.cn/simple"
 
 # ------------------------------------------------------------
 # 2. 启用缓存
@@ -81,6 +69,7 @@ echo "[env] 记录环境信息"
     echo "model_id: PaddlePaddle/PP-DocLayout_plus-L"
     echo "folder_name: paddlepaddle-pp-doclayout-plus-l"
     echo "python: $(python3 --version 2>&1)"
+    echo "pip_mirror: https://pypi.mirrors.ustc.edu.cn/simple"
     echo "created_at: $(date)"
     echo "--- pip freeze ---"
     pip freeze

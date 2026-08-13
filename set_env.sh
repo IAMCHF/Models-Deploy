@@ -8,8 +8,8 @@
 export HF_ENDPOINT="https://hf-mirror.com"
 
 # PyPI 国内镜像源（仅内网本地 create_env.sh 使用，GitHub Actions 构建时勿 source 此文件）
-export PIP_INDEX_URL="https://pypi.tuna.tsinghua.edu.cn/simple"
-export PIP_TRUSTED_HOST="pypi.tuna.tsinghua.edu.cn"
+export PIP_INDEX_URL="https://pypi.mirrors.ustc.edu.cn/simple"
+export PIP_TRUSTED_HOST="pypi.mirrors.ustc.edu.cn"
 
 # pip 缓存目录（启用缓存，避免重复下载）
 export PIP_CACHE_DIR="${PIP_CACHE_DIR:-$(pwd)/.pip_cache}"

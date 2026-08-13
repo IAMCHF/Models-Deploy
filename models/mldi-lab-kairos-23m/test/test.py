@@ -4,12 +4,11 @@
 测试脚本 - mldi-lab-kairos-23m
 - 检查服务是否运行在 localhost:8080
 - 测试 /health 断言 status=ok
-- 测试 /predict：读取 test_data 中的样例，base64 编码后发送，验证返回非空
+- 测试 /predict：读取同目录下的样例文件，base64 编码后发送，验证返回非空
 """
 
 import os
 import sys
-import json
 import base64
 import logging
 from pathlib import Path
@@ -20,12 +19,8 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 logger = logging.getLogger("test_mldi-lab-kairos-23m")
 
 BASE_URL = os.environ.get("SERVICE_URL", "http://localhost:8080")
-TEST_DATA_DIR = Path(__file__).resolve().parent / "test_data"
-
-# 测试数据生成策略：
-# 1. 优先从镜像站模型页面 Files 下载官方样例
-# 2. 镜像站不可用时从官方下载
-# 3. 均无则根据模型模态(tabular)生成随机数据
+# 测试数据放在 test.py 同级目录
+TEST_DIR = Path(__file__).resolve().parent
 
 
 def test_health():
@@ -39,10 +34,10 @@ def test_health():
 
 
 def get_test_data():
-    """获取测试数据（base64 编码）"""
-    # 查找 test_data 目录中的样例文件
-    sample_files = list(TEST_DATA_DIR.glob("*"))
-    sample_files = [f for f in sample_files if f.is_file() and not f.name.startswith(".")]
+    """获取测试数据（base64 编码），从 test.py 同级目录查找样例文件"""
+    # 查找同目录下的样例文件（排除 .py 和 .gitkeep）
+    sample_files = [f for f in TEST_DIR.iterdir()
+                    if f.is_file() and not f.name.startswith(".") and f.suffix != ".py"]
 
     if sample_files:
         sample = sample_files[0]
@@ -75,7 +70,6 @@ def test_predict():
     result = resp.json()
     assert "result" in result, f"/predict 返回缺少 result 字段: {result}"
     assert result["result"], "/predict 返回 result 为空"
-    # 验证 result 可 base64 解码
     decoded = base64.b64decode(result["result"])
     assert len(decoded) > 0, "/predict 返回 result 解码后为空"
     logger.info("/predict 通过，结果长度: %d bytes", len(decoded))
@@ -85,19 +79,16 @@ def main():
     logger.info("=" * 50)
     logger.info("开始测试: mldi-lab-kairos-23m @ %s", BASE_URL)
     logger.info("=" * 50)
-
     try:
         test_health()
     except Exception as e:
         logger.error("/health 测试失败: %s", e)
         sys.exit(1)
-
     try:
         test_predict()
     except Exception as e:
         logger.error("/predict 测试失败: %s", e)
         sys.exit(1)
-
     logger.info("=" * 50)
     logger.info("全部测试通过!")
     logger.info("=" * 50)
