@@ -1,0 +1,27 @@
+{
+  "text": "SERVICE AGREEMENT\n\nThis Service Agreement (\"Agreement\") is entered into on March 15, 2024, by and between Acme Corporation, a Delaware corporation with its principal office at 123 Market Street, San Francisco, CA 94103 (\"Client\"), and TechSolutions LLC, a California limited liability company (\"Provider\").\n\nThe Provider agrees to deliver cloud infrastructure migration services for a total contract value of $85,000.00, payable in three installments. The first payment of $30,000.00 is due upon signing, the second payment of $30,000.00 upon completion of phase one, and the final payment of $25,000.00 upon project completion. The expected completion date is December 31, 2024.\n\nSigned by: Sarah Chen, VP of Engineering, on behalf of Acme Corporation.\nSigned by: Michael Rodriguez, CEO, on behalf of TechSolutions LLC.",
+  "template": {
+    "agreement_type": "",
+    "effective_date": "",
+    "client_name": "",
+    "client_address": "",
+    "provider_name": "",
+    "service_description": "",
+    "total_value": "",
+    "payment_schedule": [
+      {
+        "amount": "",
+        "condition": ""
+      }
+    ],
+    "completion_date": "",
+    "client_signatory": {
+      "name": "",
+      "title": ""
+    },
+    "provider_signatory": {
+      "name": "",
+      "title": ""
+    }
+  }
+}
