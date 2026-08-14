@@ -5,12 +5,12 @@
 | 指标 | 数量 |
 |------|------|
 | **总计** | 40 |
-| **通过** | **32** (80%) |
-| **失败** | **8** (20%) |
+| **通过** | **39** (97.5%) |
+| **失败** | **1** (2.5%) |
 
 ---
 
-## 通过的模型 (32个)
+## 通过的模型 (39个)
 
 ### 首次测试即通过 (22个)
 | # | 模型 | 说明 |
@@ -38,7 +38,7 @@
 | 21 | synthefy-nori-30m | |
 | 22 | weborganizer-topicclassifier-nourl | |
 
-### 修复后通过 (10个)
+### 修复后通过 (17个)
 | # | 模型 | 修复内容 |
 |---|------|---------|
 | 23 | jusperlee-tiger-dnr | 卸载venv中torchaudio(2.5.1)和nvidia包(CUDA 12.4)，使用系统版本 |
@@ -51,21 +51,21 @@
 | 30 | paddlepaddle-pp-chart2table | paddlex 3.6.0 + fusion_ops补丁(fused_rms_norm_ext/cal_aux_loss) |
 | 31 | paddlepaddle-pp-doclayout-plus-l | tempfile.mktemp()→mktemp(suffix=".png") |
 | 32 | voyageai-voyage-4-nano | transformers升级到5.15.0 + config_class补丁 + create_causal_mask调用修复 |
+| 33 | aratako-miocodec-25hz-44-1khz-v2 | 安装GitHub依赖miocodec到venv + sf.write指定format="wav" |
+| 34 | google-videoprism-lvt-base-f16r288 | 安装GitHub依赖videoprism到venv + 安装tensorflow |
+| 35 | ibm-granite-granite-timeseries-patchtst-fm-r1 | 安装GitHub依赖tsfm_public到venv |
+| 36 | ibm-research-ttm-r3 | 安装GitHub依赖tsfm_public到venv |
+| 37 | neoquasar-kronos-base | 安装GitHub依赖Kronos到venv + 本地下载tokenizer权重 |
+| 38 | openmoss-team-moss-voicegenerator | 创建Python 3.12 venv + 安装依赖 |
+| 39 | yuchenshen-fomo-0d | 安装GitHub依赖fomo_hub到venv |
 
 ---
 
-## 失败的模型 (8个) - 不可修复
+## 失败的模型 (1个)
 
 | # | 模型 | 失败原因 |
 |---|------|---------|
-| 1 | aratako-miocodec-25hz-44-1khz-v2 | 需要GitHub仓库 `miocodec`，内网无法下载 |
-| 2 | datadog-toto-2-0-22m | 需要Python 3.12，基础镜像仅提供3.10 |
-| 3 | google-videoprism-lvt-base-f16r288 | 需要GitHub仓库 `videoprism`，内网无法下载 |
-| 4 | ibm-granite-granite-timeseries-patchtst-fm-r1 | 需要GitHub仓库 `tsfm_public`，内网无法下载 |
-| 5 | ibm-research-ttm-r3 | 需要GitHub仓库 `tsfm_public`，内网无法下载 |
-| 6 | neoquasar-kronos-base | 需要GitHub仓库自定义 `model` 模块，内网无法下载 |
-| 7 | openmoss-team-moss-voicegenerator | 需要Python 3.12 + 运行时下载依赖失败(401) |
-| 8 | yuchenshen-fomo-0d | 需要GitHub仓库 `fomo_hub`，内网无法下载 |
+| 1 | datadog-toto-2-0-22m | 需Python 3.12 venv已建好、依赖装好、toto2导入成功；但torch 2.9.1+cu128要求CUDA 12.8驱动，机器驱动为CUDA 12.6；降级到2.7.0+cu126需下载约2.5GB，已取消 |
 
 ---
 
@@ -79,6 +79,8 @@
 5. **测试超时** (2个模型): 增大test.py timeout
 6. **代码bug** (2个模型): 修复app.py中outputs访问和tempfile扩展名
 7. **PaddleX兼容** (2个模型): 补丁fusion_ops缺失导入
+8. **GitHub依赖** (7个模型): 克隆仓库到venv site-packages（miocodec/videoprism/tsfm_public/Kronos/fomo_hub）
+9. **Python 3.12** (1个模型): openmoss-voicegenerator 创建独立Python 3.12 venv
 
 ### 最终结论
-32/40个模型可以通过基础镜像 + 虚拟环境直接部署启动。8个失败模型均因需要GitHub私有仓库或Python 3.12，在内网环境中无法满足。
+39/40个模型可以通过基础镜像 + 虚拟环境直接部署启动。唯一失败模型 datadog-toto 因torch版本与机器CUDA 12.6驱动不兼容（需12.8），且降级安装包过大已放弃。

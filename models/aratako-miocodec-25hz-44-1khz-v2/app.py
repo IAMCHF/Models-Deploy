@@ -43,7 +43,10 @@ import soundfile as sf
 from miocodec import MioCodecModel, load_audio
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model = MioCodecModel.from_pretrained(str(WEIGHTS_DIR)).eval().to(device)
+model = MioCodecModel.from_pretrained(
+    config_path=str(WEIGHTS_DIR / "config.yaml"),
+    weights_path=str(WEIGHTS_DIR / "model.safetensors"),
+).eval().to(device)
 
 
 class PredictRequest(BaseModel):
@@ -102,7 +105,7 @@ async def predict(req: PredictRequest):
             global_embedding=features.global_embedding,
         )
         out_buf = io.BytesIO()
-        sf.write(out_buf, resynth.cpu().numpy(), model.config.sample_rate)
+        sf.write(out_buf, resynth.cpu().numpy(), model.config.sample_rate, format="wav")
         output_bytes = out_buf.getvalue()
     finally:
         os.unlink(tmp_path)

@@ -56,7 +56,7 @@ def load_model():
     if model is not None:
         return
     import torch
-    from transformers import TinyTimeMixerForPrediction
+    from tsfm_public import TinyTimeMixerForPrediction
     _device = "cuda" if torch.cuda.is_available() else "cpu"
 
     # 优先使用本地权重目录，否则使用模型名称(走镜像站自动下载)
