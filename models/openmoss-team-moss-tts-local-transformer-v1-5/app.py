@@ -171,7 +171,7 @@ async def predict(req: PredictRequest):
             outputs = model.generate(
                 input_ids=input_ids,
                 attention_mask=attention_mask,
-                max_new_tokens=4096,
+                max_new_tokens=2048,
                 do_sample=True,
                 audio_temperature=1.7,
                 audio_top_p=0.8,

@@ -7,6 +7,12 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
+# 确保python3指向3.10（系统包安装在3.10下）
+if [ -x /usr/bin/python3.10 ]; then
+    ln -sf /usr/bin/python3.10 /usr/local/bin/python3
+    ln -sf /usr/bin/python3.10 /usr/local/bin/python
+fi
+
 # 激活虚拟环境
 if [ -d "venv" ]; then
     source ./venv/bin/activate

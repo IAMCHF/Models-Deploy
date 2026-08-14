@@ -37,8 +37,8 @@ mkdir -p "$PIP_CACHE_DIR"
 if [ -d "venv" ]; then
     echo "[env] 虚拟环境已存在，跳过创建。如需重建请先删除 venv/"
 else
-    echo "[env] 创建虚拟环境: python3 -m venv venv"
-    python3 -m venv venv
+    echo "[env] 创建虚拟环境: python3 -m venv --system-site-packages venv"
+    python3 -m venv --system-site-packages venv
 fi
 
 source ./venv/bin/activate
@@ -51,14 +51,32 @@ pip install --upgrade pip
 # ------------------------------------------------------------
 # 5. 安装覆盖版本依赖（特殊模型）
 # ------------------------------------------------------------
+echo "[env] 升级 transformers 至 >=4.56（Kairos 要求）"
+    pip install "transformers>=4.56,<5.0"
 
 # ------------------------------------------------------------
-# 6. 安装 requirements.txt 模型特有依赖
+# 6. 克隆 Kairos 仓库并复制 tsfm 包
 # ------------------------------------------------------------
-echo "[env] 无额外 requirements.txt 依赖"
+echo "[env] 克隆 Kairos 仓库并复制 tsfm 包"
+if [ ! -d "tsfm" ]; then
+    git clone https://github.com/foundation-model-research/Kairos.git /tmp/kairos_repo
+    cp -r /tmp/kairos_repo/tsfm "$SCRIPT_DIR/"
+    rm -rf /tmp/kairos_repo
+    echo "[env] tsfm 包已复制到 $SCRIPT_DIR/tsfm"
+else
+    echo "[env] tsfm 目录已存在，跳过克隆"
+fi
 
 # ------------------------------------------------------------
-# 7. 记录环境到 env_info.txt
+# 7. 安装 Kairos 推理所需额外依赖
+# ------------------------------------------------------------
+echo "[env] 安装 Kairos 推理所需额外依赖"
+    pip install \
+        "einops>=0.8,<0.9" "jaxtyping>=0.3,<0.4" \
+        "matplotlib>=3.10,<4.0"
+
+# ------------------------------------------------------------
+# 8. 记录环境到 env_info.txt
 # ------------------------------------------------------------
 echo "[env] 记录环境信息"
 {

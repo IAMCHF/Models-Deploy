@@ -110,7 +110,7 @@ async def predict(req: PredictRequest):
         ], dim=0)
         combined_np = combined.cpu().numpy().T  # [T, 3]
         out_buf = io.BytesIO()
-        sf.write(out_buf, combined_np, 44100)
+        sf.write(out_buf, combined_np, 44100, format='WAV')
         output_bytes = out_buf.getvalue()
     finally:
         os.unlink(tmp_path)

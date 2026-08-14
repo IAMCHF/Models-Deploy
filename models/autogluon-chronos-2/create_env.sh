@@ -37,8 +37,8 @@ mkdir -p "$PIP_CACHE_DIR"
 if [ -d "venv" ]; then
     echo "[env] 虚拟环境已存在，跳过创建。如需重建请先删除 venv/"
 else
-    echo "[env] 创建虚拟环境: python3 -m venv venv"
-    python3 -m venv venv
+    echo "[env] 创建虚拟环境: python3 -m venv --system-site-packages venv"
+    python3 -m venv --system-site-packages venv
 fi
 
 source ./venv/bin/activate
@@ -51,12 +51,15 @@ pip install --upgrade pip
 # ------------------------------------------------------------
 # 5. 安装覆盖版本依赖（特殊模型）
 # ------------------------------------------------------------
+echo "[env] 锁定 torch/transformers 版本，防止 chronos-forecasting 拉取不兼容版本"
+    pip install "torch==2.7.0" "torchvision==0.22.0" "torchaudio==2.7.0" "transformers==4.52.0"
+    pip install pandas accelerate einops
 
 # ------------------------------------------------------------
 # 6. 安装 requirements.txt 模型特有依赖
 # ------------------------------------------------------------
 echo "[env] 安装 requirements.txt 模型特有依赖"
-    pip install -r requirements.txt
+    pip install --no-deps -r requirements.txt
 
 # ------------------------------------------------------------
 # 7. 记录环境到 env_info.txt

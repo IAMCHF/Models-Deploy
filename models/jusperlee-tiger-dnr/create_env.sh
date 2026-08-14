@@ -37,8 +37,8 @@ mkdir -p "$PIP_CACHE_DIR"
 if [ -d "venv" ]; then
     echo "[env] 虚拟环境已存在，跳过创建。如需重建请先删除 venv/"
 else
-    echo "[env] 创建虚拟环境: python3 -m venv venv"
-    python3 -m venv venv
+    echo "[env] 创建虚拟环境: python3 -m venv --system-site-packages venv"
+    python3 -m venv --system-site-packages venv
 fi
 
 source ./venv/bin/activate
@@ -67,7 +67,32 @@ echo "[env] 安装 requirements.txt 模型特有依赖"
     pip install -r requirements.txt
 
 # ------------------------------------------------------------
-# 7. 记录环境到 env_info.txt
+# 7. 克隆 TIGER 仓库并复制 look2hear 包
+# ------------------------------------------------------------
+echo "[env] 克隆 TIGER 仓库并复制 look2hear 包"
+if [ ! -d "look2hear" ]; then
+    git clone https://github.com/JusperLee/TIGER.git /tmp/tiger_repo
+    cp -r /tmp/tiger_repo/look2hear "$SCRIPT_DIR/"
+    rm -rf /tmp/tiger_repo
+    echo "[env] look2hear 包已复制到 $SCRIPT_DIR/look2hear"
+else
+    echo "[env] look2hear 目录已存在，跳过克隆"
+fi
+
+# ------------------------------------------------------------
+# 8. 安装 TIGER 推理所需额外依赖
+# ------------------------------------------------------------
+echo "[env] 安装 TIGER 推理所需额外依赖"
+    pip install \
+        "omegaconf==2.3.0" "hydra-core==1.3.2" \
+        "rotary-embedding-torch==0.8.5" "torch-complex==0.4.4" \
+        "torch-optimizer==0.3.0" "pytorch-ranger==0.1.1" \
+        "accelerated-scan==0.2.0" "fast_bss_eval==0.1.4" \
+        "soundfile==0.12.1" "librosa==0.10.2.post1" \
+        "einops==0.8.0" "typeguard==2.13.3"
+
+# ------------------------------------------------------------
+# 9. 记录环境到 env_info.txt
 # ------------------------------------------------------------
 echo "[env] 记录环境信息"
 {

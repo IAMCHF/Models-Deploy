@@ -113,7 +113,7 @@ async def predict(req: PredictRequest):
         with torch.no_grad():
             outputs = model(**inputs)
         out_buf = io.BytesIO()
-        np.save(out_buf, outputs.last_hidden_state.cpu().numpy())
+        np.save(out_buf, outputs.cpu().numpy())
         output_bytes = out_buf.getvalue()
     finally:
         os.unlink(tmp_path)

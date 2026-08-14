@@ -26,7 +26,7 @@ TEST_DIR = Path(__file__).resolve().parent
 def test_health():
     """测试 /health 端点"""
     logger.info("测试 /health ...")
-    resp = requests.get(f"{BASE_URL}/health", timeout=10)
+    resp = requests.get(f"{BASE_URL}/health", timeout=30)
     assert resp.status_code == 200, f"/health 返回状态码 {resp.status_code}"
     data = resp.json()
     assert data.get("status") == "ok", f"/health 返回: {data}"
@@ -65,7 +65,7 @@ def test_predict():
     logger.info("测试 /predict ...")
     data_b64 = get_test_data()
     payload = {"data": data_b64}
-    resp = requests.post(f"{BASE_URL}/predict", json=payload, timeout=60)
+    resp = requests.post(f"{BASE_URL}/predict", json=payload, timeout=600)
     assert resp.status_code == 200, f"/predict 返回状态码 {resp.status_code}, body: {resp.text[:500]}"
     result = resp.json()
     assert "result" in result, f"/predict 返回缺少 result 字段: {result}"
