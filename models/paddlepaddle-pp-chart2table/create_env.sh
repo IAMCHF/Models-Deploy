@@ -52,7 +52,7 @@ pip install --upgrade pip
 # 5. 安装覆盖版本依赖（特殊模型）
 # ------------------------------------------------------------
 echo "[env] 安装覆盖版本依赖"
-    pip install paddlepaddle-gpu==3.0.0
+    pip install paddlepaddle-gpu==3.0.0 --index-url https://www.paddlepaddle.org.cn/packages/stable/cu126/
     pip install paddlex paddlex[multimodal]
 
 # ------------------------------------------------------------

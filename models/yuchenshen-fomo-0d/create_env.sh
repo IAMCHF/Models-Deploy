@@ -52,7 +52,7 @@ pip install --upgrade pip
 # 5. 安装覆盖版本依赖（特殊模型）
 # ------------------------------------------------------------
 echo "[env] 安装覆盖版本依赖"
-    pip install pytorch-lightning hydra omegaconf wandb
+    pip install pytorch-lightning hydra-core omegaconf wandb
 
 # ------------------------------------------------------------
 # 6. 安装 requirements.txt 模型特有依赖

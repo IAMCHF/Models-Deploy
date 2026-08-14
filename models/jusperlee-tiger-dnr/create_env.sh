@@ -54,7 +54,10 @@ echo "[env] 卸载基础镜像默认版本: torch torchaudio torchvision transfo
 # 5. 安装覆盖版本依赖（特殊模型）
 # ------------------------------------------------------------
 echo "[env] 安装覆盖版本依赖"
-    pip install torch==2.5.1 torchaudio==2.5.1 torchvision==0.20.1 --index-url https://download.pytorch.org/whl/cu124
+    # nvidia-cudnn-cu12==9.1.0.70 已下架，先装可用版本再用 --no-deps 装 torch
+    pip install nvidia-cudnn-cu12==9.1.1.17
+    pip install --no-deps torch==2.5.1 torchaudio==2.5.1 torchvision==0.20.1 --index-url https://download.pytorch.org/whl/cu124
+    pip install nvidia-cuda-nvrtc-cu12 nvidia-cuda-runtime-cu12 nvidia-cuda-cupti-cu12 nvidia-cublas-cu12 nvidia-cufft-cu12 nvidia-curand-cu12 nvidia-cusolver-cu12 nvidia-cusparse-cu12 nvidia-cusparselt-cu12 nvidia-nccl-cu12 nvidia-nvtx-cu12 nvidia-nvjitlink-cu12
     pip install transformers==4.47.1 pytorch-lightning==2.0.2 triton==3.1.0
 
 # ------------------------------------------------------------
