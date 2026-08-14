@@ -35,3 +35,4 @@ models/*/.large_model
 .idea/
 .vscode/
 *.swp
+.docker-image/models-deploy-base-tarball.zip
