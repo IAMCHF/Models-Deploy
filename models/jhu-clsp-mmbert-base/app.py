@@ -20,6 +20,12 @@ from pathlib import Path
 import torch
 from fastapi import FastAPI
 from pydantic import BaseModel
+try:
+    # 容器无 python3-dev, Triton JIT 编译会失败; 出错时回退 eager 而非崩溃
+    import torch._dynamo
+    torch._dynamo.config.suppress_errors = True
+except Exception:
+    pass
 from transformers import AutoTokenizer, AutoModel
 
 # ============================================================

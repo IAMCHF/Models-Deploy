@@ -52,8 +52,9 @@ def load_model():
     logger.info("加载模型: %s", model_path)
 
     processor = AutoProcessor.from_pretrained(model_path)
+    # fp32 显存放不下, 用 bf16 加载
     model = VibeVoiceAsrForConditionalGeneration.from_pretrained(
-        model_path, device_map="auto"
+        model_path, device_map="auto", torch_dtype=torch.bfloat16
     )
     logger.info("VibeVoice-ASR 模型加载完成, device=%s, dtype=%s", model.device, model.dtype)
 

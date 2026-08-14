@@ -56,9 +56,11 @@ def load_model():
 
     processor = AutoProcessor.from_pretrained(model_path)
     tokenizer = processor.tokenizer
+    # device_map="cuda" 曾导致参数被拆分到 CPU/GPU 引发 device mismatch,
+    # 改为整体加载后手动 .to(device)
     model = AutoModelForSpeechSeq2Seq.from_pretrained(
-        model_path, device_map=device, torch_dtype=torch.bfloat16
-    )
+        model_path, torch_dtype=torch.bfloat16
+    ).to(device)
     logger.info("Granite Speech 4.1 2B 模型加载完成")
 
 

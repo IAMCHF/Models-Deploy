@@ -49,12 +49,15 @@ def load_model():
     global model
     if model is None:
         logger.info("正在加载 Timer-S1 模型，权重目录: %s", WEIGHTS_DIR)
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        # fp32 + device_map=auto 加载会 OOM, 改为 fp16 整体加载到单卡
         model = AutoModelForCausalLM.from_pretrained(
             str(WEIGHTS_DIR),
             trust_remote_code=True,
-            device_map="auto",
-        )
-        logger.info("Timer-S1 模型加载完成")
+            torch_dtype=torch.float16 if device == "cuda" else torch.float32,
+        ).to(device)
+        model.eval()
+        logger.info("Timer-S1 模型加载完成 (device=%s, fp16=%s)", device, device == "cuda")
 
 
 class PredictRequest(BaseModel):

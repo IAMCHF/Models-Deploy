@@ -14,6 +14,7 @@ FastAPI 服务 - voyageai/voyage-4-nano
 
 import os
 import base64
+import json
 import logging
 from pathlib import Path
 
@@ -124,7 +125,7 @@ async def predict(req: PredictRequest):
     # ============================================================
     # 推理区域 — 基于 voyage-4-nano 官方 "Via Transformers" 代码适配
     # 输入: base64 编码的文本 → 解码为字符串 → 添加查询提示词 → 提取嵌入
-    # 输出: 归一化嵌入向量的 numpy .npy 格式 base64 编码
+    # 输出: JSON {embedding: [...], dim: int} 的 UTF-8 字节 base64 编码
     # ============================================================
     try:
         text = raw_input.decode("utf-8")
@@ -134,22 +135,27 @@ async def predict(req: PredictRequest):
             result=base64.b64encode(b"error: invalid utf-8").decode()
         )
 
-    inputs = tokenizer(
-        _QUERY_PROMPT + text,
-        return_tensors="pt",
-        padding=True,
-        truncation=True,
-        max_length=32768,
-    )
-    inputs = {k: v.to(device) for k, v in inputs.items()}
-    with torch.no_grad():
-        outputs = model.forward(**inputs)
-    embeddings = mean_pool(outputs.last_hidden_state, inputs["attention_mask"])
-    embeddings = torch.nn.functional.normalize(embeddings, p=2, dim=1)
+    try:
+        inputs = tokenizer(
+            _QUERY_PROMPT + text,
+            return_tensors="pt",
+            padding=True,
+            truncation=True,
+            max_length=32768,
+        )
+        inputs = {k: v.to(device) for k, v in inputs.items()}
+        with torch.no_grad():
+            outputs = model.forward(**inputs)
+        embeddings = mean_pool(outputs.last_hidden_state, inputs["attention_mask"])
+        embeddings = torch.nn.functional.normalize(embeddings, p=2, dim=1)
 
-    out_buf = io.BytesIO()
-    np.save(out_buf, embeddings.cpu().numpy())
-    output_bytes = out_buf.getvalue()
+        emb_list = embeddings[0].cpu().tolist()
+        output_bytes = json.dumps(
+            {"embedding": emb_list, "dim": len(emb_list)}
+        ).encode("utf-8")
+    except Exception as e:
+        logger.error("推理失败: %s", e)
+        output_bytes = json.dumps({"error": str(e)}).encode("utf-8")
 
     # 编码输出
     result = base64.b64encode(output_bytes).decode()
