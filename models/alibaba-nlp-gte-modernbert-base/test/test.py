@@ -72,7 +72,10 @@ def test_predict():
     assert result["result"], "/predict 返回 result 为空"
     decoded = base64.b64decode(result["result"])
     assert len(decoded) > 0, "/predict 返回 result 解码后为空"
-    logger.info("/predict 通过，结果长度: %d bytes", len(decoded))
+    import json
+    payload = json.loads(decoded.decode("utf-8"))
+    logger.info("/predict 通过，文本嵌入 dim=%s", payload.get("dim"))
+    logger.info("embedding 前5个值: %s", payload.get("embedding", [])[:5])
 
 
 def main():

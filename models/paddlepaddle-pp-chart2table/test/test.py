@@ -72,7 +72,9 @@ def test_predict():
     assert result["result"], "/predict 返回 result 为空"
     decoded = base64.b64decode(result["result"])
     assert len(decoded) > 0, "/predict 返回 result 解码后为空"
-    logger.info("/predict 通过，结果长度: %d bytes", len(decoded))
+    text = decoded.decode("utf-8", errors="replace")
+    logger.info("/predict 通过，图表转表格(%d 字符):", len(text))
+    logger.info("%s", text[:2000])
 
 
 def main():

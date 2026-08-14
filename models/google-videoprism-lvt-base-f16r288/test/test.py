@@ -72,7 +72,14 @@ def test_predict():
     assert result["result"], "/predict 返回 result 为空"
     decoded = base64.b64decode(result["result"])
     assert len(decoded) > 0, "/predict 返回 result 解码后为空"
-    logger.info("/predict 通过，结果长度: %d bytes", len(decoded))
+    out_path = TEST_DIR / "result.npy"
+    out_path.write_bytes(decoded)
+    import io
+    import numpy as np
+    arr = np.load(io.BytesIO(decoded))
+    logger.info("/predict 通过，视频嵌入已保存: %s", out_path)
+    logger.info("嵌入信息: shape=%s dtype=%s 数值范围=[%.4f, %.4f]",
+                arr.shape, arr.dtype, float(arr.min()), float(arr.max()))
 
 
 def main():

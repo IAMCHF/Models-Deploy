@@ -72,7 +72,11 @@ def test_predict():
     assert result["result"], "/predict 返回 result 为空"
     decoded = base64.b64decode(result["result"])
     assert len(decoded) > 0, "/predict 返回 result 解码后为空"
-    logger.info("/predict 通过，结果长度: %d bytes", len(decoded))
+    import json
+    payload = json.loads(decoded.decode("utf-8"))
+    preds = payload.get("predictions")
+    logger.info("/predict 通过，异常检测 predictions shape=%s", [len(preds), len(preds[0]), len(preds[0][0])] if isinstance(preds, list) and preds and isinstance(preds[0], list) and preds[0] and isinstance(preds[0][0], list) else "?")
+    logger.info("首条得分: %s", preds[0][0][:3] if isinstance(preds, list) and preds and isinstance(preds[0], list) and preds[0] and isinstance(preds[0][0], list) else preds)
 
 
 def main():

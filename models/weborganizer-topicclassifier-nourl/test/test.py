@@ -72,7 +72,12 @@ def test_predict():
     assert result["result"], "/predict 返回 result 为空"
     decoded = base64.b64decode(result["result"])
     assert len(decoded) > 0, "/predict 返回 result 解码后为空"
-    logger.info("/predict 通过，结果长度: %d bytes", len(decoded))
+    import json
+    payload = json.loads(decoded.decode("utf-8"))
+    logger.info("/predict 通过，主题分类: label=%s (class_id=%s)", payload.get("label"), payload.get("predicted_class_id"))
+    probs = payload.get("probabilities", {})
+    top = sorted(probs.items(), key=lambda kv: kv[1], reverse=True)[:3] if isinstance(probs, dict) else []
+    logger.info("Top3概率: %s", top)
 
 
 def main():

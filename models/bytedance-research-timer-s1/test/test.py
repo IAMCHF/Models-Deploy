@@ -72,7 +72,13 @@ def test_predict():
     assert result["result"], "/predict 返回 result 为空"
     decoded = base64.b64decode(result["result"])
     assert len(decoded) > 0, "/predict 返回 result 解码后为空"
-    logger.info("/predict 通过，结果长度: %d bytes", len(decoded))
+    import json
+    payload = json.loads(decoded.decode("utf-8"))
+    q = payload.get("quantiles")
+    logger.info("/predict 通过，时序分位数预测 levels=%s", payload.get("quantile_levels"))
+    logger.info("quantiles shape=%s 首行=%s",
+                [len(x) if isinstance(x, list) else "?" for x in (q or [])],
+                (q[0][0] if isinstance(q, list) and q and isinstance(q[0], list) else q))
 
 
 def main():

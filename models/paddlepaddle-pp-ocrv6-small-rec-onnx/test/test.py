@@ -72,7 +72,12 @@ def test_predict():
     assert result["result"], "/predict 返回 result 为空"
     decoded = base64.b64decode(result["result"])
     assert len(decoded) > 0, "/predict 返回 result 解码后为空"
-    logger.info("/predict 通过，结果长度: %d bytes", len(decoded))
+    import json
+    payload = json.loads(decoded.decode("utf-8"))
+    texts = payload if isinstance(payload, list) else payload.get("texts", payload.get("results", []))
+    logger.info("/predict 通过，OCR识别文本共%d条:", len(texts) if isinstance(texts, list) else 0)
+    for t in (texts if isinstance(texts, list) else [])[:10]:
+        logger.info("  %s", t)
 
 
 def main():

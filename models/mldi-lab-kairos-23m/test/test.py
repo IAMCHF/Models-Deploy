@@ -72,7 +72,12 @@ def test_predict():
     assert result["result"], "/predict 返回 result 为空"
     decoded = base64.b64decode(result["result"])
     assert len(decoded) > 0, "/predict 返回 result 解码后为空"
-    logger.info("/predict 通过，结果长度: %d bytes", len(decoded))
+    import json
+    payload = json.loads(decoded.decode("utf-8"))
+    fc = payload.get("forecast")
+    logger.info("/predict 通过，时序预测 forecast 共%d条，前3条:", len(fc) if isinstance(fc, list) else 0)
+    for rec in (fc or [])[:3]:
+        logger.info("  %s", rec)
 
 
 def main():

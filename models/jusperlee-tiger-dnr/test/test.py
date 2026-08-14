@@ -72,7 +72,17 @@ def test_predict():
     assert result["result"], "/predict 返回 result 为空"
     decoded = base64.b64decode(result["result"])
     assert len(decoded) > 0, "/predict 返回 result 解码后为空"
-    logger.info("/predict 通过，结果长度: %d bytes", len(decoded))
+    out_path = TEST_DIR / "result.wav"
+    out_path.write_bytes(decoded)
+    try:
+        import wave
+        with wave.open(str(out_path), "rb") as wf:
+            sr = wf.getframerate(); ch = wf.getnchannels(); n = wf.getnframes()
+            dur = n / sr if sr else 0
+        logger.info("/predict 通过，分离音频已保存: %s", out_path)
+        logger.info("音频信息: 采样率=%dHz 声道=%d 时长=%.2fs 大小=%d bytes (3声道: 人声/音效/音乐)", sr, ch, dur, len(decoded))
+    except Exception:
+        logger.info("/predict 通过，音频已保存: %s (%d bytes)", out_path, len(decoded))
 
 
 def main():
