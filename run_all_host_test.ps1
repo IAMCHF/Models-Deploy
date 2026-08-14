@@ -1,6 +1,8 @@
 # ============================================================
 # run_all_host_test.ps1 - Host-side sequential test for all models
-# One model per container: start -> wait health -> run test.py -> stop/rm
+# 完全模拟内网离线环境: 容器 --network none, 无任何外网访问,
+# 服务只能靠 基础镜像系统包 + venv 虚拟环境 启动。
+# 健康检查与 test.py 均在容器内执行(容器 loopback 仍可用)。
 # Results appended to result-0815.txt
 #
 # Usage:
@@ -12,8 +14,6 @@ $ErrorActionPreference = "Continue"
 $ROOT   = "d:\ssd-projects\Models-Deploy"
 $RESULT = "$ROOT\result-0815.txt"
 $IMAGE  = "models-deploy-base:latest"
-$PORT   = 8080
-$BASE   = "http://localhost:8080"
 
 # model name -> startup time (seconds) from previous tests
 $MODELS = [ordered]@{
@@ -66,9 +66,12 @@ function Write-Result([string]$text) {
     $text | Out-File -FilePath $RESULT -Append -Encoding utf8
 }
 
+# 容器内健康检查(依赖容器自身 loopback, --network none 下仍可用)
+$HEALTH_PY = "import urllib.request,sys;`ntry:`n r=urllib.request.urlopen('http://127.0.0.1:8080/health',timeout=3);`n sys.exit(0 if b'ok' in r.read() else 1)`nexcept Exception:`n sys.exit(1)"
+
 # ---- header ----
 Write-Result "========================================"
-Write-Result "Model test - $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') (offline)"
+Write-Result "Model test - $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') (offline, --network none)"
 Write-Result "Total: $($MODELS.Count) models"
 Write-Result "========================================"
 
@@ -78,22 +81,13 @@ foreach ($model in $MODELS.Keys) {
     $mount   = "$ROOT\models\$model"
 
     Write-Host ""
-    Write-Host ">>> [$model] start container (max wait ${maxWait}s)"
-
-    # ---- free port 8080: stop/remove any container publishing it ----
-    $conflict = docker ps -q --filter "publish=$PORT" 2>$null
-    if ($conflict) {
-        foreach ($cid in $conflict) {
-            docker stop $cid 2>$null | Out-Null
-            docker rm  $cid 2>$null | Out-Null
-        }
-    }
+    Write-Host ">>> [$model] start container (network=none, max wait ${maxWait}s)"
 
     # ---- remove leftover container with same name ----
     docker rm -f $model 2>$null | Out-Null
 
-    # ---- start container ----
-    $runOut = docker run -d --name $model --gpus all -p "${PORT}:${PORT}" `
+    # ---- start container: 无网络, 纯离线 ----
+    $runOut = docker run -d --name $model --gpus all --network none `
         -v "${mount}:/workspace/models/${model}" `
         -w "/workspace/models/${model}" `
         $IMAGE bash start.sh 2>&1
@@ -105,14 +99,14 @@ foreach ($model in $MODELS.Keys) {
         continue
     }
 
-    # ---- wait for /health ----
-    $ready  = $false
+    # ---- wait for /health (容器内探测) ----
+    $ready   = $false
     $elapsed = 0
     while ($elapsed -lt $maxWait) {
         Start-Sleep -Seconds 5
         $elapsed += 5
-        $health = curl.exe -s -m 3 "$BASE/health" 2>$null
-        if ($health -match '"ok"') {
+        docker exec $model python3 -c $HEALTH_PY 2>$null
+        if ($LASTEXITCODE -eq 0) {
             $ready = $true
             break
         }
@@ -124,8 +118,8 @@ foreach ($model in $MODELS.Keys) {
 
     if ($ready) {
         Write-Host "  [OK] service ready (${elapsed}s)"
-        Write-Host ">>> [$model] run test.py"
-        $testOut = & python "$ROOT\models\$model\test\test.py" 2>&1 | ForEach-Object { $_.ToString() }
+        Write-Host ">>> [$model] run test.py (in container)"
+        $testOut = docker exec $model python3 test/test.py 2>&1 | ForEach-Object { $_.ToString() }
         $testExit = $LASTEXITCODE
         if ($testExit -eq 0) {
             $passCount++

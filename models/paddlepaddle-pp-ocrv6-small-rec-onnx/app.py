@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 FastAPI 服务 - PaddlePaddle/PP-OCRv6_small_rec_onnx
@@ -56,7 +56,7 @@ def load_model():
         and any(f for f in WEIGHTS_DIR.iterdir() if f.name != ".gitkeep")
     )
     if _has_local_weights:
-        _model = TextRecognition(model_dir=str(WEIGHTS_DIR), engine="onnxruntime")
+        _model = TextRecognition(model_name="PP-OCRv6_small_rec", model_dir=str(WEIGHTS_DIR), engine="onnxruntime")
     else:
         _model = TextRecognition(model_name="PP-OCRv6_small_rec", engine="onnxruntime")
     logger.info("PP-OCRv6_small_rec 模型加载完成")
@@ -116,7 +116,7 @@ async def predict(req: PredictRequest):
         return PredictResponse(result=base64.b64encode(b"error: model not loaded").decode())
 
     # 将 base64 解码后的图像写入临时文件
-    tmp_path = tempfile.mktemp()
+    tmp_path = tempfile.mktemp(suffix=".png")
     try:
         with open(tmp_path, "wb") as f:
             f.write(raw_input)
@@ -124,19 +124,20 @@ async def predict(req: PredictRequest):
         # 运行文本识别
         output = _model.predict(input=tmp_path, batch_size=1)
 
-        # 收集结果
+        # 收集结果: 只提取识别文本与置信度, 避免整图像素数组
         results = []
         for res in output:
             try:
-                if hasattr(res, "json") and res.json:
-                    results.append(json.loads(res.json))
-                elif hasattr(res, "to_dict"):
-                    results.append(res.to_dict())
-                else:
-                    results.append({"raw": str(res)})
+                item = {}
+                for k in ("rec_text", "rec_score"):
+                    try:
+                        item[k] = res[k]
+                    except Exception:
+                        pass
+                results.append(item or {"raw": str(res)[:2000]})
             except Exception as e:
                 logger.warning("结果序列化失败: %s", e)
-                results.append({"raw": str(res)})
+                results.append({"raw": str(res)[:2000]})
 
         output_bytes = json.dumps(results, ensure_ascii=False).encode("utf-8")
     finally:
