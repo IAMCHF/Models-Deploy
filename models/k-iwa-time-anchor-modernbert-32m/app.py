@@ -41,6 +41,13 @@ app = FastAPI(title="k-iwa-time-anchor-modernbert-32m", version="1.0.0")
 # ============================================================
 import json
 import numpy as np
+try:
+    # ModernBERT 推理可能触发 Triton JIT 编译, 容器无 python3-dev 时会失败;
+    # 出错回退 eager 而非返回 500
+    import torch._dynamo
+    torch._dynamo.config.suppress_errors = True
+except Exception:
+    pass
 from time_anchor import predict_time_anchor
 
 # checkpoint 路径：优先本地 weights 目录，回退到 HF Hub model id

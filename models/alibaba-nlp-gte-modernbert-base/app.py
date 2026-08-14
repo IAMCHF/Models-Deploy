@@ -19,6 +19,13 @@ from pathlib import Path
 
 import torch
 import torch.nn.functional as F
+try:
+    # ModernBERT 推理可能触发 Triton JIT 编译, 容器无 python3-dev 时会失败;
+    # 出错回退 eager 而非返回 500
+    import torch._dynamo
+    torch._dynamo.config.suppress_errors = True
+except Exception:
+    pass
 from fastapi import FastAPI
 from pydantic import BaseModel
 from transformers import AutoModel, AutoTokenizer
