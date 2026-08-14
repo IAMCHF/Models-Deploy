@@ -14,6 +14,8 @@ venv/
 # 模型权重（体积大，不入库）
 models/*/weights/*
 !models/*/weights/.gitkeep
+models/*/weights_audio_tokenizer/*
+!models/*/weights_audio_tokenizer/.gitkeep
 
 # 测试数据（与 test.py 同级，已入库）
 

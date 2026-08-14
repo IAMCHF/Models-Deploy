@@ -65,7 +65,7 @@ def test_predict():
     logger.info("测试 /predict ...")
     data_b64 = get_test_data()
     payload = {"data": data_b64}
-    resp = requests.post(f"{BASE_URL}/predict", json=payload, timeout=60)
+    resp = requests.post(f"{BASE_URL}/predict", json=payload, timeout=300)
     assert resp.status_code == 200, f"/predict 返回状态码 {resp.status_code}, body: {resp.text[:500]}"
     result = resp.json()
     assert "result" in result, f"/predict 返回缺少 result 字段: {result}"

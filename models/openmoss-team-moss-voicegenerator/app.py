@@ -33,6 +33,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 logger = logging.getLogger("openmoss-team-moss-voicegenerator")
 
 WEIGHTS_DIR = Path(__file__).resolve().parent / "weights"
+AUDIO_TOKENIZER_DIR = Path(__file__).resolve().parent / "weights_audio_tokenizer"
 
 app = FastAPI(title="openmoss-team-moss-voicegenerator", version="1.0.0")
 
@@ -80,12 +81,20 @@ def load_model():
 
     # 优先使用本地权重目录，否则使用模型名称(自动下载)
     model_path = str(WEIGHTS_DIR) if WEIGHTS_DIR.exists() and any(WEIGHTS_DIR.iterdir()) else MODEL_ID
+    # audio tokenizer 本地化：优先本地目录，否则使用 HF 仓库名(自动下载)
+    audio_tokenizer_path = (
+        str(AUDIO_TOKENIZER_DIR)
+        if AUDIO_TOKENIZER_DIR.exists() and any(AUDIO_TOKENIZER_DIR.iterdir())
+        else "OpenMOSS-Team/MOSS-Audio-Tokenizer"
+    )
     attn_implementation = _resolve_attn_implementation()
     logger.info("加载模型: %s, device=%s, dtype=%s, attn=%s", model_path, device, dtype, attn_implementation)
+    logger.info("加载 audio tokenizer: %s", audio_tokenizer_path)
 
     # 模型卡示例: normalize_inputs=True 用于规范化文本与 instruction 输入
     processor = AutoProcessor.from_pretrained(
-        model_path, trust_remote_code=True, normalize_inputs=True
+        model_path, trust_remote_code=True, normalize_inputs=True,
+        codec_path=audio_tokenizer_path,
     )
     processor.audio_tokenizer = processor.audio_tokenizer.to(device)
 

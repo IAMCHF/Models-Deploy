@@ -56,7 +56,7 @@
 | 35 | ibm-granite-granite-timeseries-patchtst-fm-r1 | 安装GitHub依赖tsfm_public到venv |
 | 36 | ibm-research-ttm-r3 | 安装GitHub依赖tsfm_public到venv |
 | 37 | neoquasar-kronos-base | 安装GitHub依赖Kronos到venv + 本地下载tokenizer权重 |
-| 38 | openmoss-team-moss-voicegenerator | 创建Python 3.12 venv + 安装依赖 |
+| 38 | openmoss-team-moss-voicegenerator | 创建Python 3.12 venv + 安装依赖 + audio tokenizer本地化(6.7G权重拷入weights_audio_tokenizer) |
 | 39 | yuchenshen-fomo-0d | 安装GitHub依赖fomo_hub到venv |
 
 ---
@@ -81,6 +81,7 @@
 7. **PaddleX兼容** (2个模型): 补丁fusion_ops缺失导入
 8. **GitHub依赖** (7个模型): 克隆仓库到venv site-packages（miocodec/videoprism/tsfm_public/Kronos/fomo_hub）
 9. **Python 3.12** (1个模型): openmoss-voicegenerator 创建独立Python 3.12 venv
+10. **Audio tokenizer本地化** (1个模型): openmoss-voicegenerator 将6.7G的MOSS-Audio-Tokenizer权重拷入本地目录，支持离线加载
 
 ### 最终结论
 39/40个模型可以通过基础镜像 + 虚拟环境直接部署启动。唯一失败模型 datadog-toto 因torch版本与机器CUDA 12.6驱动不兼容（需12.8），且降级安装包过大已放弃。
