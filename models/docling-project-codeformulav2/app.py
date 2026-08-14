@@ -59,10 +59,15 @@ def load_model():
 
     pipeline_options = PdfPipelineOptions(
         do_ocr=False,
+        do_table_structure=False,
         do_code_enrichment=True,
         do_formula_enrichment=True,
         code_formula_options=code_formula_options,
     )
+    # 离线部署：artifacts_path 指向本地预下载的模型快照
+    # 目录结构: weights/docling-project--CodeFormulaV2 + weights/docling-project--docling-layout-heron
+    pipeline_options.artifacts_path = str(WEIGHTS_DIR)
+    logger.info("artifacts_path(离线本地模型): %s", WEIGHTS_DIR)
 
     converter = DocumentConverter(
         format_options={
