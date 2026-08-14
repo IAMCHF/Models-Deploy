@@ -2,7 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "openmoss-team-moss-voicegenerator",
-    "version": "1.0.0"
+    "version": "1.0.0",
+    "description": "任务: 文本描述生成说话人音色(voice design from free-form text)；模态: audio (text-to-speech)"
   },
   "paths": {
     "/health": {
@@ -79,7 +80,8 @@
         "properties": {
           "data": {
             "type": "string",
-            "title": "Data"
+            "title": "Data",
+            "description": "请求输入数据（base64 编码），具体格式见下方接口说明"
           }
         },
         "type": "object",
