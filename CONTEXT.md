@@ -12,12 +12,14 @@
 
 | 指标 | 数量 |
 |------|------|
-| 模型总数 | 40 |
-| 测试通过 | **39**（97.5%） |
-| 测试失败 | **1**（datadog-toto-2-0-22m） |
+| 模型总数 | 39 |
+| 测试通过 | **39**（100%） |
+| 测试失败 | **0** |
 
-- **失败原因**：datadog-toto 需 torch 2.9.1+cu128（要求 CUDA 12.8 驱动），机器驱动为 CUDA 12.6；降级到 2.7.0+cu126 需下载约 2.5GB，已放弃。
-- 失败模型的 venv 已删除，代码保留。
+- 2026-08-14 断电恢复后，全量顺序测试 13 通过 2 失败（openmoss-tts / chart2table），已修复：
+  - **openmoss-tts**：下载 MOSS-Audio-Tokenizer-v2（~8.3G）到 `weights_audio_tokenizer/`，app.py 通过 `codec_path` 参数指向本地目录（离线加载）；测试文本 60字→5字（TTS 生成 >600s→9s）
+  - **chart2table**：`create_model` 需传 `model_dir` 参数（原代码把路径当 model_name 传入导致 "No engine bindings"）
+- 原失败模型 datadog-toto-2-0-22m 已删除（CUDA 12.8 驱动不兼容，放弃修复）。
 
 ## 3. 部署架构
 

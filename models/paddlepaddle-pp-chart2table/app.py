@@ -49,7 +49,7 @@ def load_model():
     if WEIGHTS_DIR.exists() and any(WEIGHTS_DIR.iterdir()):
         logger.info("从本地权重目录加载模型: %s", WEIGHTS_DIR)
         try:
-            model = create_model(str(WEIGHTS_DIR))
+            model = create_model("PP-Chart2Table", model_dir=str(WEIGHTS_DIR))
         except Exception as e:
             logger.warning("本地加载失败(%s)，回退到模型名称加载", e)
             model = create_model("PP-Chart2Table")

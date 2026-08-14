@@ -46,9 +46,9 @@
 | 25 | koreapeter-ms-eff-gcvit-deepfake-b0-ff-plus-plus | transformers降级到4.49.0 + 复制configuration_ms_eff_gcvit到venv |
 | 26 | koreapeter-ms-eff-gcvit-deepfake-b5-ff-plus-plus | 同上 |
 | 27 | microsoft-vibevoice-asr-hf | test.py predict超时从60s改为300s |
-| 28 | openmoss-team-moss-tts-local-transformer-v1-5 | test.py超时改为600s + max_new_tokens从4096降到2048 |
+| 28 | openmoss-team-moss-tts-local-transformer-v1-5 | test.py超时改为600s + max_new_tokens从4096降到2048 + 音频tokenizer本地化(codec_path指向本地weights_audio_tokenizer目录) + 测试文本缩短(60字→5字) |
 | 29 | opengvlab-videomaev2-base | transformers降级到4.49.0 + app.py修复outputs.last_hidden_state→outputs |
-| 30 | paddlepaddle-pp-chart2table | paddlex 3.6.0 + fusion_ops补丁(fused_rms_norm_ext/cal_aux_loss) |
+| 30 | paddlepaddle-pp-chart2table | paddlex 3.6.0 + fusion_ops补丁(fused_rms_norm_ext/cal_aux_loss) + create_model传model_dir参数(本地加载) |
 | 31 | paddlepaddle-pp-doclayout-plus-l | tempfile.mktemp()→mktemp(suffix=".png") |
 | 32 | voyageai-voyage-4-nano | transformers升级到5.15.0 + config_class补丁 + create_causal_mask调用修复 |
 | 33 | aratako-miocodec-25hz-44-1khz-v2 | 安装GitHub依赖miocodec到venv + sf.write指定format="wav" |
@@ -81,7 +81,9 @@
 7. **PaddleX兼容** (2个模型): 补丁fusion_ops缺失导入
 8. **GitHub依赖** (7个模型): 克隆仓库到venv site-packages（miocodec/videoprism/tsfm_public/Kronos/fomo_hub）
 9. **Python 3.12** (1个模型): openmoss-voicegenerator 创建独立Python 3.12 venv
-10. **Audio tokenizer本地化** (1个模型): openmoss-voicegenerator 将6.7G的MOSS-Audio-Tokenizer权重拷入本地目录，支持离线加载
+10. **Audio tokenizer本地化** (2个模型): openmoss-voicegenerator 将6.7G的MOSS-Audio-Tokenizer权重拷入本地目录；openmoss-tts 下载MOSS-Audio-Tokenizer-v2到本地目录并通过codec_path参数加载
+11. **PaddleX本地加载** (1个模型): chart2table 的 create_model 需传 model_dir 参数(不能把路径当model_name)
+12. **测试文本缩短** (1个模型): openmoss-tts 测试文本60字→5字，TTS生成时间从>600s降到9s
 
 ### 最终结论
 39/40个模型可以通过基础镜像 + 虚拟环境直接部署启动。唯一失败模型 datadog-toto 因torch版本与机器CUDA 12.6驱动不兼容（需12.8），且降级安装包过大已放弃。

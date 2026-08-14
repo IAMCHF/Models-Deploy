@@ -33,6 +33,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 logger = logging.getLogger("openmoss-team-moss-tts-local-transformer-v1-5")
 
 WEIGHTS_DIR = Path(__file__).resolve().parent / "weights"
+AUDIO_TOKENIZER_DIR = Path(__file__).resolve().parent / "weights_audio_tokenizer"
 
 app = FastAPI(title="openmoss-team-moss-tts-local-transformer-v1-5", version="1.0.0")
 
@@ -83,7 +84,11 @@ def load_model():
     attn_implementation = _resolve_attn_implementation()
     logger.info("加载模型: %s, device=%s, dtype=%s, attn=%s", model_path, device, dtype, attn_implementation)
 
-    processor = AutoProcessor.from_pretrained(model_path, trust_remote_code=True)
+    processor = AutoProcessor.from_pretrained(
+        model_path,
+        trust_remote_code=True,
+        codec_path=str(AUDIO_TOKENIZER_DIR),
+    )
     processor.audio_tokenizer = processor.audio_tokenizer.to(device)
 
     model = AutoModel.from_pretrained(

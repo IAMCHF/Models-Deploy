@@ -24,5 +24,8 @@ fi
 # 镜像站优先
 export HF_ENDPOINT="https://hf-mirror.com"
 
+# torchaudio 缓存指向本地权重目录（离线加载 wavlm 等预训练权重）
+export TORCH_HOME="$SCRIPT_DIR/weights/torch_home"
+
 echo "[start] 启动服务: $(basename $SCRIPT_DIR) (端口 8080)"
 cd /tmp && python "$SCRIPT_DIR/app.py"
