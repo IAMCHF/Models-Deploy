@@ -1,0 +1,13 @@
+==========================================
+[env] 开始创建虚拟环境: neoquasar-kronos-base
+==========================================
+[env] PyPI 镜像源: https://pypi.mirrors.ustc.edu.cn/simple
+[env] 虚拟环境已存在，跳过创建。如需重建请先删除 venv/
+Looking in indexes: https://pypi.mirrors.ustc.edu.cn/simple
+Requirement already satisfied: pip in ./venv/lib/python3.10/site-packages (26.2.1)
+[env] 无额外 requirements.txt 依赖
+[env] 记录环境信息
+==========================================
+[env] 虚拟环境创建完成: neoquasar-kronos-base
+[env] 环境信息已写入: env_info.txt
+==========================================

@@ -19,4 +19,4 @@ fi
 export HF_ENDPOINT="https://hf-mirror.com"
 
 echo "[start] 启动服务: $(basename $SCRIPT_DIR) (端口 8080)"
-python fastapi.py
+cd /tmp && python "$SCRIPT_DIR/app.py"

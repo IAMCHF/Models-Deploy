@@ -119,7 +119,7 @@ start_model() {
     name=$(basename "$dir")
     cd "$dir"
 
-    sed -i "s/port=8080/port=$port/" fastapi.py
+    sed -i "s/port=8080/port=$port/" app.py
     PORT=$port nohup bash start.sh > service.log 2>&1 &
     echo $! > .service_pid
     echo "[start] $name (PID: $!, 端口: $port)"
@@ -166,7 +166,7 @@ stop_model() {
         rm -f .service_pid
     fi
 
-    sed -i "s/port=$port/port=8080/" fastapi.py
+    sed -i "s/port=$port/port=8080/" app.py
     echo "[stop] $name 已停止"
     cd "$SCRIPT_DIR"
 }
@@ -219,14 +219,16 @@ deploy_test_sequential() {
 
 # 批量部署+测试多个模型（并行启动，统一测试，统一停止）
 deploy_test_parallel() {
-    local port="$1"
+    local base_port="$1"
     shift
     local models=("$@")
     local count=${#models[@]}
     local pass=0
     local fail=0
+    local port
 
     # 并行启动
+    port=$base_port
     for dir in "${models[@]}"; do
         start_model "$dir" "$port"
         port=$((port + 1))
@@ -234,7 +236,7 @@ deploy_test_parallel() {
     done
 
     # 等待并测试
-    port=$1
+    port=$base_port
     for dir in "${models[@]}"; do
         local name
         name=$(basename "$dir")
@@ -253,7 +255,7 @@ deploy_test_parallel() {
     done
 
     # 统一停止
-    port=$1
+    port=$base_port
     for dir in "${models[@]}"; do
         stop_model "$dir" "$port"
         port=$((port + 1))
@@ -510,7 +512,7 @@ batch_stop() {
             kill -9 "$pid" 2>/dev/null || true
             rm -f "$dir/.service_pid"
             # 恢复端口
-            sed -i "s/port=[0-9]*/port=8080/" "$dir/fastapi.py"
+            sed -i "s/port=[0-9]*/port=8080/" "$dir/app.py"
             echo "[stop] $name (PID: $pid)"
             stopped=$((stopped + 1))
         fi
