@@ -104,8 +104,8 @@ def parse_npy(data: bytes):
         hlen = struct.unpack_from("<I", data, 8)[0]
         off = 12
     hdr_txt = data[off: off + hlen].decode("latin1")
-    hdr_txt = hdr_txt.replace("True", "true").replace("False", "false").replace("None", "null").replace("'", '"')
-    hdr = json.loads(hdr_txt)
+    import ast
+    hdr = ast.literal_eval(hdr_txt)
     shape, descr = hdr["shape"], hdr["descr"]
     n = 1
     for d in shape:
