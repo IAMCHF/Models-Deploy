@@ -16,6 +16,8 @@ models/*/weights/*
 !models/*/weights/.gitkeep
 models/*/weights_audio_tokenizer/*
 !models/*/weights_audio_tokenizer/.gitkeep
+models/*/hf_cache/
+models/*/test/result.*
 
 # 测试数据（与 test.py 同级，已入库）
 

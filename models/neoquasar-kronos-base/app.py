@@ -172,9 +172,9 @@ async def predict(req: PredictRequest):
 
         # 时间戳列
         if "timestamps" in df.columns:
-            ts = pd.to_datetime(df["timestamps"])
+            ts = pd.Series(pd.to_datetime(df["timestamps"]))
         else:
-            ts = pd.to_datetime(pd.date_range(end=pd.Timestamp.now(), periods=len(df), freq="h"))
+            ts = pd.Series(pd.to_datetime(pd.date_range(end=pd.Timestamp.now(), periods=len(df), freq="h")))
 
         x_df = df.iloc[:lookback][ohlcv_cols].reset_index(drop=True)
         x_timestamp = ts.iloc[:lookback].reset_index(drop=True)

@@ -1,0 +1,422 @@
+﻿===== Diagnose 10:12:48 =====
+
+########## dleemiller-finecat-nli-l ##########
+startup: ready=True elapsed=25s
+--- test.py output ---
+docker : 2026-08-15 02:13:16,185 [INFO] ==================================================
+At D:\ssd-projects\Models-Deploy\diagnose_d.ps1:36 char:5
++     docker exec $model python3 test/test.py 2>&1 | Select-Object -Las ...
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (2026-08-15 02:1...===============:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+2026-08-15 02:13:16,185 [INFO] 开始测试: dleemiller-finecat-nli-l @ http://localhost:8080
+2026-08-15 02:13:16,185 [INFO] ==================================================
+2026-08-15 02:13:16,185 [INFO] 测试 /health ...
+2026-08-15 02:13:16,190 [INFO] /health 通过: {'status': 'ok'}
+2026-08-15 02:13:16,190 [INFO] 测试 /predict ...
+2026-08-15 02:13:16,193 [INFO] 使用测试数据: sample.json (372 bytes)
+2026-08-15 02:13:18,174 [ERROR] /predict 测试失败: 服务端返回错误: error: inference failed: CalledProcessError: Command '['/usr/bi
+n/gcc', '/tmp/tmp
+--- server logs (last 80) ---
+  File "/usr/local/lib/python3.10/dist-packages/torch/nn/modules/module.py", line 1762, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/workspace/models/dleemiller-finecat-nli-l/venv/lib/python3.10/site-packages/sentence_transformers/base/model.p
+y", line 517, in forward
+    input = module(input, **module_kwargs)
+  File "/usr/local/lib/python3.10/dist-packages/torch/nn/modules/module.py", line 1751, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/usr/local/lib/python3.10/dist-packages/torch/nn/modules/module.py", line 1762, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/workspace/models/dleemiller-finecat-nli-l/venv/lib/python3.10/site-packages/sentence_transformers/base/modules
+/transformer.py", line 1196, in forward
+    model_output = model_method(**filtered_kwargs)
+  File "/usr/local/lib/python3.10/dist-packages/transformers/models/modernbert/modeling_modernbert.py", line 1166, in f
+orward
+    outputs = self.model(
+  File "/usr/local/lib/python3.10/dist-packages/torch/nn/modules/module.py", line 1751, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/usr/local/lib/python3.10/dist-packages/torch/nn/modules/module.py", line 1762, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/usr/local/lib/python3.10/dist-packages/transformers/models/modernbert/modeling_modernbert.py", line 863, in fo
+rward
+    hidden_states = self.embeddings(input_ids=input_ids, inputs_embeds=inputs_embeds)
+  File "/usr/local/lib/python3.10/dist-packages/torch/nn/modules/module.py", line 1751, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/usr/local/lib/python3.10/dist-packages/torch/nn/modules/module.py", line 1762, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/usr/local/lib/python3.10/dist-packages/transformers/models/modernbert/modeling_modernbert.py", line 215, in fo
+rward
+    self.compiled_embeddings(input_ids)
+  File "/usr/local/lib/python3.10/dist-packages/torch/_dynamo/eval_frame.py", line 663, in _fn
+    raise e.remove_dynamo_frames() from None  # see TORCHDYNAMO_VERBOSE=1
+  File "/usr/local/lib/python3.10/dist-packages/torch/_inductor/compile_fx.py", line 760, in _compile_fx_inner
+    raise InductorError(e, currentframe()).with_traceback(
+  File "/usr/local/lib/python3.10/dist-packages/torch/_inductor/compile_fx.py", line 745, in _compile_fx_inner
+    mb_compiled_graph = fx_codegen_and_compile(
+  File "/usr/local/lib/python3.10/dist-packages/torch/_inductor/compile_fx.py", line 1295, in fx_codegen_and_compile
+    return scheme.codegen_and_compile(gm, example_inputs, inputs_to_check, graph_kwargs)
+  File "/usr/local/lib/python3.10/dist-packages/torch/_inductor/compile_fx.py", line 1197, in codegen_and_compile
+    compiled_fn = graph.compile_to_module().call
+  File "/usr/local/lib/python3.10/dist-packages/torch/_inductor/graph.py", line 2083, in compile_to_module
+    return self._compile_to_module()
+  File "/usr/local/lib/python3.10/dist-packages/torch/_inductor/graph.py", line 2091, in _compile_to_module
+    self.codegen_with_cpp_wrapper() if self.cpp_wrapper else self.codegen()
+  File "/usr/local/lib/python3.10/dist-packages/torch/_inductor/graph.py", line 2002, in codegen
+    self.scheduler.codegen()
+  File "/usr/local/lib/python3.10/dist-packages/torch/_inductor/scheduler.py", line 4135, in codegen
+    else self._codegen(self.nodes)
+  File "/usr/local/lib/python3.10/dist-packages/torch/_inductor/scheduler.py", line 4264, in _codegen
+    self.get_backend(device).codegen_node(node)
+  File "/usr/local/lib/python3.10/dist-packages/torch/_inductor/codegen/cuda_combined_scheduling.py", line 104, in code
+gen_node
+    return self._triton_scheduling.codegen_node(node)
+  File "/usr/local/lib/python3.10/dist-packages/torch/_inductor/codegen/simd.py", line 1320, in codegen_node
+    return self.codegen_node_schedule(
+  File "/usr/local/lib/python3.10/dist-packages/torch/_inductor/codegen/simd.py", line 1365, in codegen_node_schedule
+    src_code = kernel.codegen_kernel()
+  File "/usr/local/lib/python3.10/dist-packages/torch/_inductor/codegen/triton.py", line 3623, in codegen_kernel
+    **self.inductor_meta_common(),
+  File "/usr/local/lib/python3.10/dist-packages/torch/_inductor/codegen/triton.py", line 3447, in inductor_meta_common
+    "backend_hash": torch.utils._triton.triton_hash_with_backend(),
+  File "/usr/local/lib/python3.10/dist-packages/torch/utils/_triton.py", line 111, in triton_hash_with_backend
+    backend = triton_backend()
+  File "/usr/local/lib/python3.10/dist-packages/torch/utils/_triton.py", line 103, in triton_backend
+    target = driver.active.get_current_target()
+  File "/usr/local/lib/python3.10/dist-packages/triton/runtime/driver.py", line 23, in __getattr__
+    self._initialize_obj()
+  File "/usr/local/lib/python3.10/dist-packages/triton/runtime/driver.py", line 20, in _initialize_obj
+    self._obj = self._init_fn()
+  File "/usr/local/lib/python3.10/dist-packages/triton/runtime/driver.py", line 9, in _create_driver
+    return actives[0]()
+  File "/usr/local/lib/python3.10/dist-packages/triton/backends/nvidia/driver.py", line 535, in __init__
+    self.utils = CudaUtils()  # TODO: make static
+  File "/usr/local/lib/python3.10/dist-packages/triton/backends/nvidia/driver.py", line 89, in __init__
+    mod = compile_module_from_src(Path(os.path.join(dirname, "driver.c")).read_text(), "cuda_utils")
+  File "/usr/local/lib/python3.10/dist-packages/triton/backends/nvidia/driver.py", line 66, in compile_module_from_src
+    so = _build(name, src_path, tmpdir, library_dirs(), include_dir, libraries)
+  File "/usr/local/lib/python3.10/dist-packages/triton/runtime/build.py", line 36, in _build
+    subprocess.check_call(cc_cmd, stdout=subprocess.DEVNULL)
+  File "/usr/lib/python3.10/subprocess.py", line 369, in check_call
+INFO:     127.0.0.1:43878 - "POST /predict HTTP/1.1" 200 OK
+    raise CalledProcessError(retcode, cmd)
+torch._inductor.exc.InductorError: CalledProcessError: Command '['/usr/bin/gcc', '/tmp/tmp0itwqcwu/main.c', '-O3', '-sh
+ared', '-fPIC', '-Wno-psabi', '-o', '/tmp/tmp0itwqcwu/cuda_utils.cpython-310-x86_64-linux-gnu.so', '-lcuda', '-L/usr/lo
+cal/lib/python3.10/dist-packages/triton/backends/nvidia/lib', '-L/usr/lib/x86_64-linux-gnu', '-I/usr/local/lib/python3.
+10/dist-packages/triton/backends/nvidia/include', '-I/tmp/tmp0itwqcwu', '-I/usr/include/python3.10']' returned non-zero
+ exit status 1.
+
+Set TORCHDYNAMO_VERBOSE=1 for the internal stack trace (please do this especially if you're reporting a bug to PyTorch)
+. For even more developer context, set TORCH_LOGS="+dynamo"
+
+2026-08-15 02:13:18,173 [INFO] 推理完成，耗时 1976.6 ms
+
+########## docling-project-codeformulav2 ##########
+startup: ready=True elapsed=25s
+--- test.py output ---
+docker : 2026-08-15 02:13:46,263 [INFO] ==================================================
+At D:\ssd-projects\Models-Deploy\diagnose_d.ps1:36 char:5
++     docker exec $model python3 test/test.py 2>&1 | Select-Object -Las ...
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (2026-08-15 02:1...===============:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+2026-08-15 02:13:46,263 [INFO] 开始测试: docling-project-codeformulav2 @ http://localhost:8080
+2026-08-15 02:13:46,263 [INFO] ==================================================
+2026-08-15 02:13:46,264 [INFO] 测试 /health ...
+2026-08-15 02:13:46,267 [INFO] /health 通过: {'status': 'ok'}
+2026-08-15 02:13:46,267 [INFO] 测试 /predict ...
+2026-08-15 02:13:46,273 [INFO] 使用测试数据: sample.png (34726 bytes)
+2026-08-15 02:14:19,366 [ERROR] /predict 测试失败: 服务端返回错误: error: inference failed - Conversion failed for: tmpbh_fwxgj.pn
+g with status: fa
+--- server logs (last 80) ---
+Loading weights: 100%|██████████| 471/471 [00:04<00:00, 106.08it/s]
+[transformers] The tied weights mapping and config for this model specifies to tie model.text_model.embed_tokens.weight
+ to lm_head.weight, but both are present in the checkpoints with different values, so we will NOT tie them. You should 
+update the config with `tie_word_embeddings=False` to silence this warning.
+2026-08-15 02:14:14,485 [INFO] Loaded model docling-project/CodeFormulaV2 (revision: main)
+2026-08-15 02:14:14,485 [INFO] Auto-inline engine initialized with transformers
+2026-08-15 02:14:14,485 [INFO] CodeFormulaVlmModel initialized successfully
+2026-08-15 02:14:14,486 [INFO] Processing document tmpbh_fwxgj.png
+2026-08-15 02:14:19,355 [ERROR] Stage layout failed for run 1: backend='inductor' raised:
+ImportError: cannot import name 'triton_key' from 'triton.compiler.compiler' (/workspace/models/docling-project-codefor
+mulav2/venv/lib/python3.10/site-packages/triton/compiler/compiler.py)
+
+Set TORCHDYNAMO_VERBOSE=1 for the internal stack trace (please do this especially if you're reporting a bug to PyTorch)
+. For even more developer context, set TORCH_LOGS="+dynamo"
+Traceback (most recent call last):
+  File "/workspace/models/docling-project-codeformulav2/venv/lib/python3.10/site-packages/docling/pipeline/standard_pdf
+_pipeline.py", line 353, in _process_batch
+    processed_pages = list(self.model(good[0].conv_res, pages))  # type: ignore[arg-type]
+  File "/workspace/models/docling-project-codeformulav2/venv/lib/python3.10/site-packages/docling/models/base_layout_mo
+del.py", line 59, in __call__
+    predictions = self.predict_layout(conv_res, pages)
+  File "/workspace/models/docling-project-codeformulav2/venv/lib/python3.10/site-packages/docling/models/stages/layout/
+layout_object_detection_model.py", line 115, in predict_layout
+    engine_outputs = self.engine.predict_batch(batch)
+  File "/workspace/models/docling-project-codeformulav2/venv/lib/python3.10/site-packages/docling/models/inference_engi
+nes/object_detection/transformers_engine.py", line 208, in predict_batch
+    outputs = self._model(**inputs)  # type: ignore[operator]
+  File "/usr/local/lib/python3.10/dist-packages/torch/nn/modules/module.py", line 1751, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/usr/local/lib/python3.10/dist-packages/torch/nn/modules/module.py", line 1762, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/usr/local/lib/python3.10/dist-packages/torch/_dynamo/eval_frame.py", line 663, in _fn
+    raise e.remove_dynamo_frames() from None  # see TORCHDYNAMO_VERBOSE=1
+  File "/usr/local/lib/python3.10/dist-packages/torch/_dynamo/output_graph.py", line 1544, in _call_user_compiler
+    raise BackendCompilerFailed(
+  File "/usr/local/lib/python3.10/dist-packages/torch/_dynamo/output_graph.py", line 1519, in _call_user_compiler
+    compiled_fn = compiler_fn(gm, self.example_inputs())
+  File "/usr/local/lib/python3.10/dist-packages/torch/_dynamo/repro/after_dynamo.py", line 150, in __call__
+    compiled_gm = compiler_fn(gm, example_inputs)
+  File "/usr/local/lib/python3.10/dist-packages/torch/__init__.py", line 2347, in __call__
+    return compile_fx(model_, inputs_, config_patches=self.config)
+  File "/usr/local/lib/python3.10/dist-packages/torch/_inductor/compile_fx.py", line 2089, in compile_fx
+    return aot_autograd(
+  File "/usr/local/lib/python3.10/dist-packages/torch/_dynamo/backends/common.py", line 101, in __call__
+    cg = aot_module_simplified(gm, example_inputs, **self.kwargs)
+  File "/usr/local/lib/python3.10/dist-packages/torch/_functorch/aot_autograd.py", line 1160, in aot_module_simplified
+    compiled_fn = AOTAutogradCache.load(
+  File "/usr/local/lib/python3.10/dist-packages/torch/_functorch/_aot_autograd/autograd_cache.py", line 775, in load
+    compiled_fn = dispatch_and_compile()
+  File "/usr/local/lib/python3.10/dist-packages/torch/_functorch/aot_autograd.py", line 1145, in dispatch_and_compile
+    compiled_fn, _ = create_aot_dispatcher_function(
+  File "/usr/local/lib/python3.10/dist-packages/torch/_functorch/aot_autograd.py", line 570, in create_aot_dispatcher_f
+unction
+    return _create_aot_dispatcher_function(
+  File "/usr/local/lib/python3.10/dist-packages/torch/_functorch/aot_autograd.py", line 820, in _create_aot_dispatcher_
+function
+    compiled_fn, fw_metadata = compiler_fn(
+  File "/usr/local/lib/python3.10/dist-packages/torch/_functorch/_aot_autograd/jit_compile_runtime_wrappers.py", line 2
+19, in aot_dispatch_base
+    compiled_fw = compiler(fw_module, updated_flat_args)
+  File "/usr/local/lib/python3.10/dist-packages/torch/_functorch/aot_autograd.py", line 479, in __call__
+    return self.compiler_fn(gm, example_inputs)
+  File "/usr/local/lib/python3.10/dist-packages/torch/_inductor/compile_fx.py", line 1944, in fw_compiler_base
+    return inner_compile(
+  File "/usr/local/lib/python3.10/dist-packages/torch/_inductor/compile_fx.py", line 628, in compile_fx_inner
+    return wrap_compiler_debug(_compile_fx_inner, compiler_name="inductor")(
+  File "/usr/local/lib/python3.10/dist-packages/torch/_dynamo/repro/after_aot.py", line 124, in debug_wrapper
+    inner_compiled_fn = compiler_fn(gm, example_inputs)
+  File "/usr/local/lib/python3.10/dist-packages/torch/_inductor/compile_fx.py", line 711, in _compile_fx_inner
+    (key_info, cache_info) = FxGraphCache.prepare_key(
+  File "/usr/local/lib/python3.10/dist-packages/torch/_inductor/codecache.py", line 1251, in prepare_key
+    key, debug_lines = compiled_fx_graph_hash(
+  File "/usr/local/lib/python3.10/dist-packages/torch/_inductor/codecache.py", line 859, in compiled_fx_graph_hash
+    details = FxGraphHashDetails(gm, example_inputs, fx_kwargs, inputs_to_check)
+  File "/usr/local/lib/python3.10/dist-packages/torch/_inductor/codecache.py", line 831, in __init__
+    self.system_info = CacheBase.get_system()
+  File "/usr/local/lib/python3.10/dist-packages/torch/_inductor/codecache.py", line 166, in get_system
+    from triton.compiler.compiler import triton_key
+torch._dynamo.exc.BackendCompilerFailed: backend='inductor' raised:
+ImportError: cannot import name 'triton_key' from 'triton.compiler.compiler' (/workspace/models/docling-project-codefor
+mulav2/venv/lib/python3.10/site-packages/triton/compiler/compiler.py)
+
+Set TORCHDYNAMO_VERBOSE=1 for the internal stack trace (please do this especially if you're reporting a bug to PyTorch)
+. For even more developer context, set TORCH_LOGS="+dynamo"
+
+2026-08-15 02:14:19,361 [INFO] Finished converting document tmpbh_fwxgj.png in 33.09 sec.
+INFO:     127.0.0.1:35228 - "POST /predict HTTP/1.1" 200 OK
+2026-08-15 02:14:19,365 [ERROR] 推理失败: Conversion failed for: tmpbh_fwxgj.png with status: failure. Errors: backend='ind
+uctor' raised:
+ImportError: cannot import name 'triton_key' from 'triton.compiler.compiler' (/workspace/models/docling-project-codefor
+mulav2/venv/lib/python3.10/site-packages/triton/compiler/compiler.py)
+
+Set TORCHDYNAMO_VERBOSE=1 for the internal stack trace (please do this especially if you're reporting a bug to PyTorch)
+. For even more developer context, set TORCH_LOGS="+dynamo"
+
+2026-08-15 02:14:19,365 [INFO] 推理完成，耗时 33088.4 ms
+
+########## autogluon-mitra-classifier ##########
+startup: ready=True elapsed=10s
+--- test.py output ---
+docker : 2026-08-15 02:14:31,802 [INFO] ==================================================
+At D:\ssd-projects\Models-Deploy\diagnose_d.ps1:36 char:5
++     docker exec $model python3 test/test.py 2>&1 | Select-Object -Las ...
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (2026-08-15 02:1...===============:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+2026-08-15 02:14:31,802 [INFO] 开始测试: autogluon-mitra-classifier @ http://localhost:8080
+2026-08-15 02:14:31,802 [INFO] ==================================================
+2026-08-15 02:14:31,802 [INFO] 测试 /health ...
+2026-08-15 02:14:31,805 [INFO] /health 通过: {'status': 'ok'}
+2026-08-15 02:14:31,805 [INFO] 测试 /predict ...
+2026-08-15 02:14:31,807 [INFO] 使用测试数据: sample.csv (train=80 行, test=20 行, 标签列=label)
+2026-08-15 02:15:29,201 [ERROR] /predict 测试失败: 服务端返回错误: error: inference failed - No models were trained successfully d
+uring fit(). Insp
+--- server logs (last 80) ---
+		('int', [])      : 3 | ['age', 'tenure', 'support_calls']
+	0.0s = Fit runtime
+	8 features in original data used to generate 8 features in processed data.
+	Train Data (Processed) Memory Usage: 0.00 MB (0.0% of available memory)
+Data preprocessing and feature engineering runtime = 0.04s ...
+AutoGluon will gauge predictive performance using evaluation metric: 'accuracy'
+	To change this, specify the eval_metric parameter of Predictor()
+Automatically generating train/validation split with holdout_frac=0.2, Train Rows: 64, Val Rows: 16
+User-specified model hyperparameters to be fit:
+{
+	'MITRA': [{'fine_tune': False}],
+}
+Fitting 1 L1 models, fit_strategy="sequential" ...
+Fitting model: Mitra ...
+	Fitting with cpus=6, gpus=1, mem=7.0/14.5 GB
+'[Errno -3] Temporary failure in name resolution' thrown while requesting HEAD https://hf-mirror.com/autogluon/mitra-cl
+assifier/resolve/main/config.json
+2026-08-15 02:15:05,553 [WARNING] '[Errno -3] Temporary failure in name resolution' thrown while requesting HEAD https:
+//hf-mirror.com/autogluon/mitra-classifier/resolve/main/config.json
+Retrying in 1s [Retry 1/5].
+2026-08-15 02:15:05,553 [WARNING] Retrying in 1s [Retry 1/5].
+'[Errno -3] Temporary failure in name resolution' thrown while requesting HEAD https://hf-mirror.com/autogluon/mitra-cl
+assifier/resolve/main/config.json
+2026-08-15 02:15:06,641 [WARNING] '[Errno -3] Temporary failure in name resolution' thrown while requesting HEAD https:
+//hf-mirror.com/autogluon/mitra-classifier/resolve/main/config.json
+Retrying in 2s [Retry 2/5].
+2026-08-15 02:15:06,641 [WARNING] Retrying in 2s [Retry 2/5].
+'[Errno -3] Temporary failure in name resolution' thrown while requesting HEAD https://hf-mirror.com/autogluon/mitra-cl
+assifier/resolve/main/config.json
+2026-08-15 02:15:08,740 [WARNING] '[Errno -3] Temporary failure in name resolution' thrown while requesting HEAD https:
+//hf-mirror.com/autogluon/mitra-classifier/resolve/main/config.json
+Retrying in 4s [Retry 3/5].
+2026-08-15 02:15:08,740 [WARNING] Retrying in 4s [Retry 3/5].
+'[Errno -3] Temporary failure in name resolution' thrown while requesting HEAD https://hf-mirror.com/autogluon/mitra-cl
+assifier/resolve/main/config.json
+2026-08-15 02:15:12,826 [WARNING] '[Errno -3] Temporary failure in name resolution' thrown while requesting HEAD https:
+//hf-mirror.com/autogluon/mitra-classifier/resolve/main/config.json
+Retrying in 8s [Retry 4/5].
+2026-08-15 02:15:12,826 [WARNING] Retrying in 8s [Retry 4/5].
+'[Errno -3] Temporary failure in name resolution' thrown while requesting HEAD https://hf-mirror.com/autogluon/mitra-cl
+assifier/resolve/main/config.json
+2026-08-15 02:15:20,916 [WARNING] '[Errno -3] Temporary failure in name resolution' thrown while requesting HEAD https:
+//hf-mirror.com/autogluon/mitra-classifier/resolve/main/config.json
+Retrying in 8s [Retry 5/5].
+2026-08-15 02:15:20,917 [WARNING] Retrying in 8s [Retry 5/5].
+'[Errno -3] Temporary failure in name resolution' thrown while requesting HEAD https://hf-mirror.com/autogluon/mitra-cl
+assifier/resolve/main/config.json
+2026-08-15 02:15:29,018 [WARNING] '[Errno -3] Temporary failure in name resolution' thrown while requesting HEAD https:
+//hf-mirror.com/autogluon/mitra-classifier/resolve/main/config.json
+	Warning: Exception caused Mitra to fail during training... Skipping this model.
+		An error happened while trying to locate the file on the Hub and we cannot find the requested files in the local cach
+e. Please check your connection and try again or make sure your Internet connection is on.
+Detailed Traceback:
+httpcore.ConnectError: [Errno -3] Temporary failure in name resolution
+
+The above exception was the direct cause of the following exception:
+
+httpx.ConnectError: [Errno -3] Temporary failure in name resolution
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/workspace/models/autogluon-mitra-classifier/venv/lib/python3.10/site-packages/autogluon/tabular/trainer/abstra
+ct_trainer.py", line 2438, in _train_and_save
+    model = self._train_single(**model_fit_kwargs)
+  File "/workspace/models/autogluon-mitra-classifier/venv/lib/python3.10/site-packages/autogluon/tabular/trainer/abstra
+ct_trainer.py", line 2301, in _train_single
+    model = model.fit(
+  File "/workspace/models/autogluon-mitra-classifier/venv/lib/python3.10/site-packages/autogluon/core/models/abstract/a
+bstract_model.py", line 1399, in fit
+    out = self._fit(**kwargs)
+  File "/workspace/models/autogluon-mitra-classifier/venv/lib/python3.10/site-packages/autogluon/tabular/models/mitra/m
+itra_model.py", line 183, in _fit
+    model = self.model.fit(
+  File "/workspace/models/autogluon-mitra-classifier/venv/lib/python3.10/site-packages/autogluon/tabular/models/mitra/s
+klearn_interface.py", line 322, in fit
+    return self._train_ensemble(
+  File "/workspace/models/autogluon-mitra-classifier/venv/lib/python3.10/site-packages/autogluon/tabular/models/mitra/s
+klearn_interface.py", line 204, in _train_ensemble
+    model = Tab2D.from_pretrained(self.hf_model, device=self.device)
+  File "/workspace/models/autogluon-mitra-classifier/venv/lib/python3.10/site-packages/autogluon/tabular/models/mitra/_
+internal/models/tab2d.py", line 229, in from_pretrained
+    config_path = _resolve_pretrained_file(path_or_repo_id, "config.json")
+  File "/workspace/models/autogluon-mitra-classifier/venv/lib/python3.10/site-packages/autogluon/tabular/models/mitra/_
+internal/models/tab2d.py", line 46, in _resolve_pretrained_file
+    return hf_hub_download(repo_id=path_or_repo_id, filename=filename)
+  File "/workspace/models/autogluon-mitra-classifier/venv/lib/python3.10/site-packages/huggingface_hub/utils/_validator
+s.py", line 88, in _inner_fn
+    return fn(*args, **kwargs)
+  File "/workspace/models/autogluon-mitra-classifier/venv/lib/python3.10/site-packages/huggingface_hub/file_download.py
+", line 1019, in hf_hub_download
+    return _hf_hub_download_to_cache_dir(
+  File "/workspace/models/autogluon-mitra-classifier/venv/lib/python3.10/site-packages/huggingface_hub/file_download.py
+", line 1166, in _hf_hub_download_to_cache_dir
+    _raise_on_head_call_error(head_call_error, force_download, local_files_only)
+  File "/workspace/models/autogluon-mitra-classifier/venv/lib/python3.10/site-packages/huggingface_hub/file_download.py
+", line 1907, in _raise_on_head_call_error
+    raise LocalEntryNotFoundError(
+huggingface_hub.errors.LocalEntryNotFoundError: An error happened while trying to locate the file on the Hub and we can
+not find the requested files in the local cache. Please check your connection and try again or make sure your Internet 
+connection is on.
+No base models to train on, skipping auxiliary stack level 2...
+Warning: AutoGluon did not successfully train any models
+INFO:     127.0.0.1:33308 - "POST /predict HTTP/1.1" 200 OK
+AutoGluon training complete, total runtime = 51.45s ... Best model: None
+2026-08-15 02:15:29,198 [ERROR] 推理失败: No models were trained successfully during fit(). Inspect the log output or incre
+ase verbosity to determine why no models were fit. Alternatively, set `raise_on_no_models_fitted` to False during the f
+it call.
+2026-08-15 02:15:29,199 [INFO] 推理完成，耗时 57388.2 ms
+
+########## paddlepaddle-pp-docblocklayout ##########
+startup: ready=True elapsed=25s
+--- test.py output ---
+docker : 2026-08-15 02:15:57,299 [INFO] ==================================================
+At D:\ssd-projects\Models-Deploy\diagnose_d.ps1:36 char:5
++     docker exec $model python3 test/test.py 2>&1 | Select-Object -Las ...
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (2026-08-15 02:1...===============:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+2026-08-15 02:15:57,299 [INFO] 开始测试: paddlepaddle-pp-docblocklayout @ http://localhost:8080
+2026-08-15 02:15:57,299 [INFO] ==================================================
+2026-08-15 02:15:57,299 [INFO] 测试 /health ...
+2026-08-15 02:15:57,303 [INFO] /health 通过: {'status': 'ok'}
+2026-08-15 02:15:57,303 [INFO] 测试 /predict ...
+2026-08-15 02:15:57,327 [INFO] 使用测试数据: sample.png (2897554 bytes)
+2026-08-15 02:15:57,355 [ERROR] /predict 测试失败: 服务端返回错误: error: model not loaded
+--- server logs (last 80) ---
+
+docker : /workspace/models/paddlepaddle-pp-docblocklayout/app.py:73: DeprecationWarning: 
+At D:\ssd-projects\Models-Deploy\diagnose_d.ps1:39 char:3
++   docker logs $model 2>&1 | Select-Object -Last 80 | Out-File $OUT -A ...
++   ~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (/workspace/mode...cationWarning: :String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+==========
+== CUDA ==
+==========
+
+CUDA Version 12.4.1
+
+Container image Copyright (c) 2016-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+
+This container image and its contents are governed by the NVIDIA Deep Learning Container License.
+By pulling and using the container, you accept the terms and conditions of this license:
+https://developer.nvidia.com/ngc/nvidia-deep-learning-container-license
+
+A copy of this license is made available in this container at /NGC-DL-CONTAINER-LICENSE for your convenience.
+
+[start] 启动服务: paddlepaddle-pp-docblocklayout (端口 8080)
+INFO:     127.0.0.1:55116 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55122 - "GET /health HTTP/1.1" 200 OK
+        on_event is deprecated, use lifespan event handlers instead.
+
+        Read more about it in the
+        [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+INFO:     127.0.0.1:55138 - "POST /predict HTTP/1.1" 200 OK
+        
+  @app.on_event("startup")
+INFO:     Started server process [32]
+INFO:     Waiting for application startup.
+2026-08-15 02:15:32,198 [INFO] 服务启动，权重目录: /workspace/models/paddlepaddle-pp-docblocklayout/weights
+2026-08-15 02:15:45,608 [INFO] 正在加载 PP-DocBlockLayout 模型...
+/workspace/models/paddlepaddle-pp-docblocklayout/venv/lib/python3.10/site-packages/paddle/utils/cpp_extension/extension
+_utils.py:711: UserWarning: No ccache found. Please be aware that recompiling all source files may be required. You can
+ download and install ccache from: https://github.com/ccache/ccache/blob/master/doc/INSTALL.md
+  warnings.warn(warning_message)
+2026-08-15 02:15:54,331 [ERROR] 模型加载失败: Model name mismatch: expected 'PP-DocLayout_plus-L' but config has 'PP-DocBlock
+Layout'. Please input the correct model dir.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8080 (Press CTRL+C to quit)
+2026-08-15 02:15:57,353 [ERROR] 模型未加载，无法推理
+===== DONE =====

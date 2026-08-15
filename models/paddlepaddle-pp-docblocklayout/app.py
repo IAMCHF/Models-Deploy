@@ -54,7 +54,7 @@ def load_model():
         and any(f for f in WEIGHTS_DIR.iterdir() if f.name != ".gitkeep")
     )
     if _has_local_weights:
-        _model = LayoutDetection(model_dir=str(WEIGHTS_DIR))
+        _model = LayoutDetection(model_name="PP-DocBlockLayout", model_dir=str(WEIGHTS_DIR))
     else:
         _model = LayoutDetection(model_name="PP-DocBlockLayout")
     logger.info("PP-DocBlockLayout 模型加载完成")

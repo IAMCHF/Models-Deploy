@@ -32,6 +32,9 @@ from pydantic import BaseModel
 # 镜像站优先：确保模型加载时若需下载额外配置/tokenizer 优先走镜像站
 # ============================================================
 os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
+# 基础模型缓存放到模型目录内(随挂载持久化), 内网离线时直接走本地缓存
+os.environ["HF_HOME"] = str(Path(__file__).resolve().parent / "hf_cache")
+os.environ["HF_HUB_OFFLINE"] = "1"
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("autogluon-mitra-classifier")

@@ -17,6 +17,9 @@ import json
 import logging
 from pathlib import Path
 
+# 离线容器缺 gcc 编译环境, 禁用 torch.compile (sentence-transformers 新版默认编译 embeddings)
+os.environ["TORCHDYNAMO_DISABLE"] = "1"
+
 import numpy as np
 import torch
 from fastapi import FastAPI

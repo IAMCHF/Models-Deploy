@@ -140,7 +140,12 @@ def show_result(decoded: bytes):
     assert "error" not in payload, f"服务端推理错误: {str(payload.get('error'))[:300]}"
     fc = payload.get("forecast")
     assert fc, f"无预测: {str(payload)[:200]}"
-    series = fc[0] if fc and isinstance(fc[0], list) else fc
+    def _flat(x):
+        while isinstance(x, list) and x and isinstance(x[0], list):
+            x = x[0]
+        return x
+
+    series = _flat(fc)
     logger.info("Kairos 预测 %d 步, 前8步: %s", len(series), [round(v, 3) for v in series[:8]])
 
 

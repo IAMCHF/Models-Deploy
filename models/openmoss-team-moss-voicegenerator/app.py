@@ -203,10 +203,21 @@ async def predict(req: PredictRequest):
         if audio_tensor is None:
             output_bytes = b"error: no audio generated"
         else:
-            # 写入 WAV 字节流 (模型卡示例: torchaudio.save(out_path, audio.unsqueeze(0), sr))
+            # 写入 WAV 字节流 (标准库 wave + int16 PCM, 避免 torchaudio 依赖 torchcodec)
+            import wave
+            import numpy as np
             sampling_rate = processor.model_config.sampling_rate
+            arr = audio_tensor.detach().float().cpu().numpy()
+            if arr.ndim == 1:
+                arr = arr[None, :]
+            arr = np.clip(arr, -1.0, 1.0)
+            interleaved = (arr.T * 32767.0).astype("<i2").tobytes()
             buf = io.BytesIO()
-            torchaudio.save(buf, audio_tensor.unsqueeze(0), sampling_rate, format="wav")
+            with wave.open(buf, "wb") as w:
+                w.setnchannels(int(arr.shape[0]))
+                w.setsampwidth(2)
+                w.setframerate(int(sampling_rate))
+                w.writeframes(interleaved)
             output_bytes = buf.getvalue()
     except Exception as e:
         logger.error("推理失败: %s", e)

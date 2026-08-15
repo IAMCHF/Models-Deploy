@@ -141,7 +141,12 @@ def show_result(decoded: bytes):
     preds = payload.get("predictions")
     shape = payload.get("shape")
     assert preds, f"无预测: {str(payload)[:200]}"
-    first = preds[0] if isinstance(preds[0], list) else preds
+    def _flat(x):
+        while isinstance(x, list) and x and isinstance(x[0], list):
+            x = x[0]
+        return x
+
+    first = _flat(preds)
     logger.info("TTM 预测 shape=%s, 前8步: %s", shape, [round(v, 3) for v in first[:8]])
 
 

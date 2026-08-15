@@ -17,6 +17,9 @@ import logging
 import tempfile
 from pathlib import Path
 
+# 禁用 torch.compile: venv 的 triton 与系统 torch 版本不匹配, inductor 导入 triton_key 失败
+os.environ["TORCHDYNAMO_DISABLE"] = "1"
+
 from fastapi import FastAPI
 from pydantic import BaseModel
 

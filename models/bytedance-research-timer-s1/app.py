@@ -111,7 +111,7 @@ async def predict(req: PredictRequest):
     #   quantiles: (batch, 9, forecast_length) 分位数预测
     # ============================================================
     try:
-        seqs = torch.tensor(payload["seqs"], dtype=torch.float32).to(model.device)
+        seqs = torch.tensor(payload["seqs"], dtype=torch.float32).to(model.device, model.dtype)
         forecast_length = payload.get("forecast_length", 256)
 
         with torch.no_grad():
