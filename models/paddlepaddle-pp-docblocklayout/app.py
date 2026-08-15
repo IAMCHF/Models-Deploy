@@ -114,7 +114,7 @@ async def predict(req: PredictRequest):
         return PredictResponse(result=base64.b64encode(b"error: model not loaded").decode())
 
     # 将 base64 解码后的图像写入临时文件
-    tmp_path = tempfile.mktemp()
+    tmp_path = tempfile.mktemp(suffix=".png")
     try:
         with open(tmp_path, "wb") as f:
             f.write(raw_input)
