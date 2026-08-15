@@ -148,7 +148,12 @@ def show_result(decoded: bytes):
     logger.info("表格分类预测(20 行): %s", dict(cnt))
     proba = payload.get("predict_proba")
     if proba:
-        logger.info("前3行概率: %s", [dict((k, round(v, 3)) for k, v in row.items()) for row in proba[:3]])
+        if isinstance(proba, dict):
+            # 列式 dict: {类别: [每行概率]}
+            head = {k: [round(float(x), 3) for x in v[:3]] for k, v in proba.items()}
+            logger.info("前3行概率(按列): %s", head)
+        else:
+            logger.info("前3行概率: %s", [dict((k, round(v, 3)) for k, v in row.items()) for row in proba[:3]])
 
 
 def test_predict():
